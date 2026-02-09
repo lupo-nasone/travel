@@ -6,6 +6,9 @@ import RadiusSelector from "@/components/RadiusSelector";
 import SurpriseMeButton from "@/components/SurpriseMeButton";
 import DestinationCard from "@/components/DestinationCard";
 import LocationStatus from "@/components/LocationStatus";
+import BikerOptions from "@/components/BikerOptions";
+import TouristOptions from "@/components/TouristOptions";
+import ExtremeOptions from "@/components/ExtremeOptions";
 import {
   TravelMode,
   GeoPosition,
@@ -13,6 +16,9 @@ import {
   WeatherData,
   Destination,
   DestinationDatabase,
+  BikerPreferences,
+  TouristPreferences,
+  ExtremePreferences,
 } from "@/lib/types";
 import {
   haversineDistance,
@@ -36,12 +42,51 @@ export default function Home() {
   const [seenNames, setSeenNames] = useState<string[]>([]);
   const [seenStaticIds, setSeenStaticIds] = useState<string[]>([]);
   const [aiUsed, setAiUsed] = useState<boolean | null>(null);
+  const [isExtremeMode, setIsExtremeMode] = useState(false);
+  const [showExtremePanel, setShowExtremePanel] = useState(false);
+
+  // Extreme-specific preferences
+  const [extremePrefs, setExtremePrefs] = useState<ExtremePreferences>({
+    transport: "auto",
+    budget: "100",
+  });
+
+  // Biker-specific preferences
+  const today = new Date().toISOString().split("T")[0];
+  const [bikerPrefs, setBikerPrefs] = useState<BikerPreferences>({
+    intent: "curve",
+    targetDate: today,
+    targetTime: "10:00",
+    preferScenic: true,
+    avoidHighways: true,
+    groupSize: "solo",
+  });
+
+  // Tourist-specific preferences
+  const [touristPrefs, setTouristPrefs] = useState<TouristPreferences>({
+    transport: "auto",
+    accommodation: "bnb",
+    allowAbroad: false,
+    tripDays: 1,
+    targetDate: today,
+    groupSize: "coppia",
+  });
 
   // Auto-request geolocation on mount
   useEffect(() => {
     requestLocation();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Trigger extreme search when isExtremeMode is set to true
+  const [extremePending, setExtremePending] = useState(false);
+  useEffect(() => {
+    if (extremePending && isExtremeMode) {
+      setExtremePending(false);
+      handleSurprise();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [extremePending, isExtremeMode]);
 
   const requestLocation = useCallback(() => {
     if (!navigator.geolocation) {
@@ -107,6 +152,12 @@ export default function Home() {
             radius,
             mode,
             excludeNames: seenNames,
+            extreme: isExtremeMode,
+            ...(isExtremeMode
+              ? { extremePrefs }
+              : mode === "biker"
+              ? { bikerPrefs }
+              : { touristPrefs }),
           }),
         });
 
@@ -211,6 +262,8 @@ export default function Home() {
         weather,
         travelTime: estimateTravelTime(distance, mode),
         mapsUrl: buildMapsUrl(userPos, destination, mode),
+        sunsetTime: destination.sunsetTime || undefined,
+        sunriseTime: destination.sunriseTime || undefined,
       };
 
       setResult(destinationResult);
@@ -220,7 +273,7 @@ export default function Home() {
     } finally {
       setIsLoading(false);
     }
-  }, [userPos, mode, radius, requestLocation, seenNames, seenStaticIds]);
+  }, [userPos, mode, radius, requestLocation, seenNames, seenStaticIds, bikerPrefs, touristPrefs, isExtremeMode, extremePrefs]);
 
   const handleReset = useCallback(() => {
     setResult(null);
@@ -275,13 +328,99 @@ export default function Home() {
             {/* Radius Selector */}
             <RadiusSelector radius={radius} onChange={setRadius} />
 
+            {/* Tourist Options (shown only in tourist mode) */}
+            {mode === "tourist" && (
+              <TouristOptions
+                preferences={touristPrefs}
+                onChange={setTouristPrefs}
+              />
+            )}
+
+            {/* Biker Options (shown only in biker mode) */}
+            {mode === "biker" && (
+              <BikerOptions
+                preferences={bikerPrefs}
+                onChange={setBikerPrefs}
+              />
+            )}
+
             {/* Surprise Button */}
-            <div className="mt-4">
+            <div className="mt-4 flex flex-col items-center gap-3">
               <SurpriseMeButton
-                onClick={handleSurprise}
-                isLoading={isLoading}
+                onClick={() => {
+                  if (isExtremeMode) setIsExtremeMode(false);
+                  handleSurprise();
+                }}
+                isLoading={isLoading && !isExtremeMode}
                 mode={mode}
               />
+
+              {/* Extreme Button */}
+              <button
+                onClick={() => {
+                  setShowExtremePanel((prev) => !prev);
+                }}
+                disabled={isLoading}
+                className={`
+                  group relative overflow-hidden rounded-full
+                  bg-gradient-to-br from-red-500 via-pink-600 to-purple-700
+                  px-8 py-3 text-sm font-bold text-white
+                  shadow-lg shadow-red-500/30
+                  transition-all duration-500 ease-out
+                  hover:scale-105 hover:shadow-xl hover:shadow-red-500/40
+                  active:scale-95
+                  disabled:opacity-70 disabled:cursor-wait disabled:hover:scale-100
+                  ${showExtremePanel ? "ring-2 ring-red-400/60" : ""}
+                `}
+              >
+                <span className="flex items-center gap-2">
+                  <span className="text-lg transition-transform duration-300 group-hover:animate-bounce">🔥</span>
+                  {showExtremePanel ? "Chiudi Opzioni Estrema" : "Modalità Estrema"}
+                </span>
+              </button>
+
+              {/* Extreme Options Panel */}
+              {showExtremePanel && (
+                <div className="w-full flex flex-col items-center gap-3">
+                  <ExtremeOptions
+                    preferences={extremePrefs}
+                    onChange={setExtremePrefs}
+                  />
+                  <button
+                    onClick={() => {
+                      setIsExtremeMode(true);
+                      setExtremePending(true);
+                    }}
+                    disabled={isLoading}
+                    className={`
+                      group relative overflow-hidden rounded-full
+                      bg-gradient-to-br from-red-600 via-orange-500 to-yellow-500
+                      px-10 py-3.5 text-sm font-black text-white uppercase tracking-wider
+                      shadow-lg shadow-orange-500/30
+                      transition-all duration-500 ease-out
+                      hover:scale-110 hover:shadow-xl hover:shadow-orange-500/40
+                      active:scale-95
+                      disabled:opacity-70 disabled:cursor-wait disabled:hover:scale-100
+                    `}
+                  >
+                    {isLoading && isExtremeMode ? (
+                      <span className="flex items-center gap-2">
+                        <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                        </svg>
+                        Genero follia...
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-2">
+                        <span className="text-lg animate-bounce">�</span>
+                        LANCIA L&apos;AVVENTURA ESTREMA
+                        <span className="text-lg animate-bounce">🚀</span>
+                      </span>
+                    )}
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* No Result Message */}
@@ -315,14 +454,18 @@ export default function Home() {
             {aiUsed !== null && (
               <div
                 className={`mb-4 flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium animate-fade-in ${
-                  aiUsed
+                  isExtremeMode
+                    ? "bg-red-500/15 border border-red-500/30 text-red-300"
+                    : aiUsed
                     ? "bg-indigo-500/15 border border-indigo-500/30 text-indigo-300"
                     : "bg-amber-500/15 border border-amber-500/30 text-amber-300"
                 }`}
               >
-                <span className="text-base">{aiUsed ? "🤖" : "📦"}</span>
+                <span className="text-base">{isExtremeMode ? "🔥" : aiUsed ? "🤖" : "📦"}</span>
                 <span>
-                  {aiUsed
+                  {isExtremeMode
+                    ? "Modalità Estrema — Avventura folle generata dall'IA"
+                    : aiUsed
                     ? "Destinazione scelta dall'Intelligenza Artificiale"
                     : "IA non disponibile — destinazione dal database locale"}
                 </span>

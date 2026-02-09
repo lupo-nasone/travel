@@ -1,0 +1,294 @@
+"use client";
+
+import { ExtremePreferences, ExtremeTransport, ExtremeBudget, ExtremeAccommodation, ExtremeRiskLevel } from "@/lib/types";
+
+interface ExtremeOptionsProps {
+  preferences: ExtremePreferences;
+  onChange: (prefs: ExtremePreferences) => void;
+}
+
+export default function ExtremeOptions({ preferences, onChange }: ExtremeOptionsProps) {
+  const update = (partial: Partial<ExtremePreferences>) => {
+    onChange({ ...preferences, ...partial });
+  };
+
+  // ── Transport options ──
+  const transportOptions: { value: ExtremeTransport; emoji: string; label: string }[] = [
+    { value: "auto", emoji: "🚗", label: "Auto" },
+    { value: "moto", emoji: "🏍️", label: "Moto" },
+    { value: "treno", emoji: "🚂", label: "Treno" },
+    { value: "aereo", emoji: "✈️", label: "Aereo" },
+    { value: "traghetto", emoji: "⛴️", label: "Traghetto" },
+    { value: "bici", emoji: "🚴", label: "Bicicletta" },
+    { value: "autostop", emoji: "👍", label: "Autostop" },
+    { value: "piedi", emoji: "🥾", label: "A piedi" },
+    { value: "qualsiasi", emoji: "🎲", label: "Qualsiasi" },
+  ];
+
+  // ── Budget options ──
+  const budgetOptions: { value: ExtremeBudget; emoji: string; label: string }[] = [
+    { value: "zero", emoji: "🆓", label: "€0 Gratis" },
+    { value: "50", emoji: "💸", label: "~€50" },
+    { value: "100", emoji: "💵", label: "~€100" },
+    { value: "200", emoji: "💰", label: "~€200" },
+    { value: "500", emoji: "🤑", label: "~€500" },
+    { value: "1000", emoji: "💎", label: "€1000+" },
+    { value: "illimitato", emoji: "♾️", label: "Illimitato" },
+  ];
+
+  // ── Accommodation options ──
+  const accommodationOptions: { value: ExtremeAccommodation; emoji: string; label: string }[] = [
+    { value: "tenda", emoji: "⛺", label: "Tenda" },
+    { value: "sacco_a_pelo", emoji: "🛏️", label: "Sacco a pelo" },
+    { value: "bivacco", emoji: "🏔️", label: "Bivacco" },
+    { value: "macchina", emoji: "🚗", label: "In macchina" },
+    { value: "ostello", emoji: "🏠", label: "Ostello" },
+    { value: "hotel", emoji: "🏨", label: "Hotel" },
+    { value: "qualsiasi", emoji: "🎲", label: "Qualsiasi" },
+  ];
+
+  // ── Risk level options ──
+  const riskOptions: { value: ExtremeRiskLevel; emoji: string; label: string; desc: string }[] = [
+    { value: "soft", emoji: "😊", label: "Soft", desc: "Un po' folle ma tranquillo" },
+    { value: "medio", emoji: "😈", label: "Medio", desc: "Ci vuole coraggio" },
+    { value: "hardcore", emoji: "💀", label: "Hardcore", desc: "Solo per pazzi veri" },
+    { value: "suicida", emoji: "☠️", label: "Suicida", desc: "Follia totale (legale)" },
+  ];
+
+  // ── Companions ──
+  const companionOptions: { value: "solo" | "coppia" | "gruppo" | "chiunque"; emoji: string; label: string }[] = [
+    { value: "solo", emoji: "🧍", label: "Solo" },
+    { value: "coppia", emoji: "👫", label: "In coppia" },
+    { value: "gruppo", emoji: "👥", label: "Gruppo" },
+    { value: "chiunque", emoji: "🎭", label: "Chiunque" },
+  ];
+
+  const today = new Date().toISOString().split("T")[0];
+
+  return (
+    <div className="w-full animate-fade-in rounded-2xl border border-red-500/30 bg-red-500/5 p-5 backdrop-blur-sm">
+      <h3 className="mb-4 text-center text-sm font-bold text-red-300 flex items-center justify-center gap-2">
+        <span className="text-lg">🔥</span>
+        Opzioni Modalità Estrema
+        <span className="text-lg">🔥</span>
+      </h3>
+
+      {/* ═══ TRASPORTO (OBBLIGATORIO) ═══ */}
+      <div className="mb-5">
+        <label className="mb-2 flex items-center gap-2 text-xs font-semibold text-white/70">
+          Come ci arrivi?
+          <span className="rounded-full bg-red-500/30 px-2 py-0.5 text-[10px] font-bold text-red-300">
+            OBBLIGATORIO
+          </span>
+        </label>
+        <div className="grid grid-cols-3 gap-2">
+          {transportOptions.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => update({ transport: opt.value })}
+              className={`flex flex-col items-center gap-1 rounded-xl px-2 py-2.5 text-xs font-medium transition-all duration-200 ${
+                preferences.transport === opt.value
+                  ? "bg-red-500/30 text-white ring-1 ring-red-400/50 scale-105"
+                  : "bg-white/5 text-white/50 hover:bg-white/10 hover:text-white/80"
+              }`}
+            >
+              <span className="text-lg">{opt.emoji}</span>
+              <span>{opt.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ═══ BUDGET (OBBLIGATORIO) ═══ */}
+      <div className="mb-5">
+        <label className="mb-2 flex items-center gap-2 text-xs font-semibold text-white/70">
+          Budget massimo
+          <span className="rounded-full bg-red-500/30 px-2 py-0.5 text-[10px] font-bold text-red-300">
+            OBBLIGATORIO
+          </span>
+        </label>
+        <div className="grid grid-cols-4 gap-2">
+          {budgetOptions.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => update({ budget: opt.value })}
+              className={`flex flex-col items-center gap-1 rounded-xl px-2 py-2 text-xs font-medium transition-all duration-200 ${
+                preferences.budget === opt.value
+                  ? "bg-red-500/30 text-white ring-1 ring-red-400/50 scale-105"
+                  : "bg-white/5 text-white/50 hover:bg-white/10 hover:text-white/80"
+              }`}
+            >
+              <span className="text-base">{opt.emoji}</span>
+              <span>{opt.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ═══ SEPARATORE OPZIONALI ═══ */}
+      <div className="my-4 flex items-center gap-3">
+        <div className="h-px flex-1 bg-white/10" />
+        <span className="text-[10px] font-medium text-white/30 uppercase tracking-wider">
+          Opzionali — lascia vuoto per roba generica
+        </span>
+        <div className="h-px flex-1 bg-white/10" />
+      </div>
+
+      {/* ═══ DOVE DORMI (OPZIONALE) ═══ */}
+      <div className="mb-4">
+        <label className="mb-2 block text-xs font-semibold text-white/50">
+          Dove dormi? 
+          <span className="ml-1 text-white/30">(opzionale)</span>
+        </label>
+        <div className="grid grid-cols-4 gap-2">
+          {accommodationOptions.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() =>
+                update({
+                  accommodation:
+                    preferences.accommodation === opt.value ? undefined : opt.value,
+                })
+              }
+              className={`flex flex-col items-center gap-1 rounded-xl px-2 py-2 text-xs font-medium transition-all duration-200 ${
+                preferences.accommodation === opt.value
+                  ? "bg-orange-500/30 text-white ring-1 ring-orange-400/50 scale-105"
+                  : "bg-white/5 text-white/40 hover:bg-white/10 hover:text-white/70"
+              }`}
+            >
+              <span className="text-base">{opt.emoji}</span>
+              <span>{opt.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ═══ LIVELLO DI RISCHIO (OPZIONALE) ═══ */}
+      <div className="mb-4">
+        <label className="mb-2 block text-xs font-semibold text-white/50">
+          Quanto sei pazzo?
+          <span className="ml-1 text-white/30">(opzionale)</span>
+        </label>
+        <div className="grid grid-cols-2 gap-2">
+          {riskOptions.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() =>
+                update({
+                  riskLevel:
+                    preferences.riskLevel === opt.value ? undefined : opt.value,
+                })
+              }
+              className={`flex items-center gap-2 rounded-xl px-3 py-2.5 text-xs font-medium transition-all duration-200 ${
+                preferences.riskLevel === opt.value
+                  ? "bg-orange-500/30 text-white ring-1 ring-orange-400/50 scale-105"
+                  : "bg-white/5 text-white/40 hover:bg-white/10 hover:text-white/70"
+              }`}
+            >
+              <span className="text-lg">{opt.emoji}</span>
+              <div className="flex flex-col items-start">
+                <span className="font-bold">{opt.label}</span>
+                <span className="text-[10px] text-white/30">{opt.desc}</span>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ═══ DURATA + COMPAGNI (OPZIONALI) ═══ */}
+      <div className="mb-4 grid grid-cols-2 gap-3">
+        {/* Durata */}
+        <div>
+          <label className="mb-1.5 block text-xs font-semibold text-white/50">
+            Durata <span className="text-white/30">(opz.)</span>
+          </label>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => update({ duration: Math.max(1, (preferences.duration || 1) - 1) })}
+              className="rounded-lg bg-white/10 px-2.5 py-1.5 text-sm text-white/60 hover:bg-white/20 transition-colors"
+            >
+              −
+            </button>
+            <span className="min-w-[3rem] text-center text-sm font-bold text-white/80">
+              {preferences.duration ? `${preferences.duration}g` : "—"}
+            </span>
+            <button
+              onClick={() => update({ duration: Math.min(30, (preferences.duration || 0) + 1) })}
+              className="rounded-lg bg-white/10 px-2.5 py-1.5 text-sm text-white/60 hover:bg-white/20 transition-colors"
+            >
+              +
+            </button>
+            {preferences.duration && (
+              <button
+                onClick={() => update({ duration: undefined })}
+                className="text-[10px] text-white/30 hover:text-white/50 transition-colors"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Compagni */}
+        <div>
+          <label className="mb-1.5 block text-xs font-semibold text-white/50">
+            Con chi? <span className="text-white/30">(opz.)</span>
+          </label>
+          <div className="grid grid-cols-2 gap-1.5">
+            {companionOptions.map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() =>
+                  update({
+                    companions:
+                      preferences.companions === opt.value ? undefined : opt.value,
+                  })
+                }
+                className={`flex items-center justify-center gap-1 rounded-lg px-1 py-1.5 text-[11px] font-medium transition-all duration-200 ${
+                  preferences.companions === opt.value
+                    ? "bg-orange-500/30 text-white ring-1 ring-orange-400/50"
+                    : "bg-white/5 text-white/40 hover:bg-white/10"
+                }`}
+              >
+                <span>{opt.emoji}</span>
+                <span>{opt.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ═══ DATA + ESTERO (OPZIONALI) ═══ */}
+      <div className="flex items-center gap-3">
+        {/* Data partenza */}
+        <div className="flex-1">
+          <label className="mb-1.5 block text-xs font-semibold text-white/50">
+            Quando? <span className="text-white/30">(opz.)</span>
+          </label>
+          <input
+            type="date"
+            value={preferences.targetDate || ""}
+            min={today}
+            onChange={(e) => update({ targetDate: e.target.value || undefined })}
+            className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/80 outline-none focus:border-red-400/50 focus:ring-1 focus:ring-red-400/30 transition-all"
+          />
+        </div>
+
+        {/* Estero */}
+        <div className="flex flex-col items-center gap-1 pt-4">
+          <button
+            onClick={() => update({ allowAbroad: !preferences.allowAbroad })}
+            className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-medium transition-all duration-200 ${
+              preferences.allowAbroad
+                ? "bg-red-500/30 text-white ring-1 ring-red-400/50"
+                : "bg-white/5 text-white/40 hover:bg-white/10"
+            }`}
+          >
+            <span className="text-base">{preferences.allowAbroad ? "🌍" : "🇮🇹"}</span>
+            <span>{preferences.allowAbroad ? "Anche estero" : "Solo Italia"}</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -128,6 +128,31 @@ export default function DestinationCard({
             </div>
           </div>
 
+          {/* Sunrise / Sunset row */}
+          {(result.sunriseTime || result.sunsetTime) && (
+            <div className="flex items-center justify-center gap-6 rounded-xl bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/15 px-4 py-3">
+              {result.sunriseTime && (
+                <div className="flex items-center gap-1.5">
+                  <span className="text-base">🌅</span>
+                  <div>
+                    <span className="text-xs text-white/40 block leading-none">Alba</span>
+                    <span className="text-sm font-bold text-amber-200">{result.sunriseTime}</span>
+                  </div>
+                </div>
+              )}
+              <div className="w-px h-8 bg-white/10" />
+              {result.sunsetTime && (
+                <div className="flex items-center gap-1.5">
+                  <span className="text-base">🌇</span>
+                  <div>
+                    <span className="text-xs text-white/40 block leading-none">Tramonto</span>
+                    <span className="text-sm font-bold text-orange-200">{result.sunsetTime}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Biker extras */}
           {mode === "biker" && destination.roadQuality && (
             <div className="flex items-center justify-between rounded-xl bg-white/5 px-4 py-3">
@@ -147,6 +172,47 @@ export default function DestinationCard({
             </div>
           )}
 
+          {/* Biker directions */}
+          {mode === "biker" && destination.directions && (
+            <div className="rounded-2xl bg-orange-500/10 border border-orange-500/20 p-4">
+              <div className="flex items-start gap-2">
+                <span className="text-lg shrink-0">🗺️</span>
+                <div>
+                  <p className="text-xs font-semibold text-orange-300 mb-1 uppercase tracking-wide">
+                    Percorso consigliato
+                  </p>
+                  <p className="text-sm text-white/80 leading-relaxed">
+                    {destination.directions}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Biker roads info */}
+          {mode === "biker" && destination.roads && destination.roads.length > 0 && (
+            <div className="rounded-xl bg-white/5 px-4 py-3">
+              <p className="text-xs font-semibold text-white/50 mb-2 uppercase tracking-wide">
+                🛣️ Strade principali
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {destination.roads.map((road, i) => (
+                  <span
+                    key={i}
+                    className="inline-flex items-center gap-1 rounded-full bg-orange-500/15 border border-orange-500/25 px-2.5 py-1 text-xs text-orange-200"
+                  >
+                    {road.name || "Strada senza nome"}
+                    {road.surface && (
+                      <span className="text-[10px] text-orange-400/60 ml-0.5">
+                        ({road.surface})
+                      </span>
+                    )}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Weather details */}
           {weather && (
             <div className="flex items-center justify-between text-xs text-white/40 px-1">
@@ -160,6 +226,63 @@ export default function DestinationCard({
           <p className="text-sm text-white/70 leading-relaxed">
             {destination.description}
           </p>
+
+          {/* AI Plan — detailed guide */}
+          {destination.aiPlan && (
+            <div className="rounded-2xl bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 p-4">
+              <div className="flex items-start gap-2">
+                <span className="text-lg shrink-0">🤖</span>
+                <div>
+                  <p className="text-xs font-semibold text-indigo-300 mb-2 uppercase tracking-wide">
+                    Il tuo piano — consigliato dall&apos;IA
+                  </p>
+                  <p className="text-sm text-white/80 leading-relaxed whitespace-pre-line">
+                    {destination.aiPlan}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Nearby places to eat/drink */}
+          {destination.nearbyPlaces && destination.nearbyPlaces.length > 0 && (
+            <div className="rounded-2xl bg-emerald-500/8 border border-emerald-500/20 p-4">
+              <p className="text-xs font-semibold text-emerald-300 mb-3 uppercase tracking-wide flex items-center gap-1.5">
+                <span className="text-base">🍽️</span> Dove mangiare e bere
+              </p>
+              <div className="space-y-2.5">
+                {destination.nearbyPlaces.map((place, i) => {
+                  const typeEmoji: Record<string, string> = {
+                    ristorante: "🍽️",
+                    bar: "🍹",
+                    trattoria: "🍝",
+                    agriturismo: "🌾",
+                    rifugio: "⛺",
+                    gelateria: "🍦",
+                    altro: "📍",
+                  };
+                  return (
+                    <div
+                      key={i}
+                      className="flex items-start gap-2 rounded-xl bg-white/5 px-3 py-2.5"
+                    >
+                      <span className="text-base shrink-0 mt-0.5">
+                        {typeEmoji[place.type] || "📍"}
+                      </span>
+                      <div>
+                        <p className="text-sm font-semibold text-white/90">
+                          {place.name}
+                        </p>
+                        <p className="text-xs text-white/50 leading-relaxed">
+                          {place.description}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Action Buttons */}
           <div className="flex flex-col gap-3 pt-2">
