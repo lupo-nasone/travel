@@ -289,6 +289,25 @@ export default function ExtremeOptions({ preferences, onChange }: ExtremeOptions
           </button>
         </div>
       </div>
+
+      {/* ═══ FREE TEXT (OPZIONALE) ═══ */}
+      <div className="mt-4">
+        <label className="mb-1.5 block text-xs font-semibold text-white/50">
+          ✏️ Descrivi la follia che vuoi fare
+          <span className="ml-1 text-white/30">(opzionale)</span>
+        </label>
+        <textarea
+          value={preferences.freeText || ""}
+          onChange={(e) => update({ freeText: e.target.value })}
+          placeholder="Es: vorrei dormire in un faro abbandonato, oppure raggiungere il punto più estremo d'Italia..."
+          rows={3}
+          maxLength={300}
+          className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white/80 placeholder-white/30 outline-none transition-all focus:border-red-400/50 focus:ring-1 focus:ring-red-400/30 resize-none"
+        />
+        <div className="mt-1 text-right text-[10px] text-white/30">
+          {(preferences.freeText || "").length}/300
+        </div>
+      </div>
     </div>
   );
 }

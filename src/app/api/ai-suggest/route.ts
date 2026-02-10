@@ -3,7 +3,9 @@ import { NextResponse } from "next/server";
 interface AiSuggestRequest {
   lat: number;
   lng: number;
-  radius: number;
+  minRadius: number;
+  maxRadius: number;
+  allowAbroad?: boolean;
   mode: "tourist" | "biker";
   excludeNames: string[];
   extreme?: boolean;
@@ -16,22 +18,32 @@ interface AiSuggestRequest {
     riskLevel?: string;
     allowAbroad?: boolean;
     targetDate?: string;
+    freeText?: string;
   };
   bikerPrefs?: {
     intent: string;
+    experience?: string;
+    roadTypes?: string[];
     targetDate: string;
     targetTime: string;
     preferScenic: boolean;
     avoidHighways: boolean;
     groupSize: "solo" | "coppia" | "gruppo";
+    freeText?: string;
   };
   touristPrefs?: {
     transport: "auto" | "treno" | "aereo" | "traghetto";
     accommodation: "hotel_lusso" | "bnb" | "campeggio" | "arrangiarsi";
-    allowAbroad: boolean;
+    budget: "economico" | "medio" | "comfort" | "lusso";
+    interests?: string[];
+    pace?: string;
+    travelStyle?: string;
     tripDays: number;
     targetDate: string;
+    travelMonth?: string;
+    departurePoint?: string;
     groupSize: "solo" | "coppia" | "famiglia" | "gruppo";
+    freeText?: string;
   };
 }
 
@@ -91,9 +103,10 @@ export async function POST(request: Request) {
 
   try {
     const body: AiSuggestRequest = await request.json();
-    const { lat, lng, radius, mode, bikerPrefs, touristPrefs, extremePrefs } = body;
+    const { lat, lng, minRadius, maxRadius, mode, bikerPrefs, touristPrefs, extremePrefs } = body;
     const excludeNames = body.excludeNames || [];
     const isExtreme = body.extreme === true;
+    const allowAbroad = body.allowAbroad === true;
 
     const excludeList =
       excludeNames.length > 0
@@ -184,6 +197,12 @@ VINCOLI OBBLIGATORI (l'avventura DEVE rispettare questi):
         extremeContext += `\n- DATA PARTENZA: ${ep.targetDate}`;
       }
 
+      if (ep.freeText && ep.freeText.trim()) {
+        extremeContext += `\n\nRICHIESTA SPECIALE DELL'UTENTE (PRIORITÀ ALTA — tieni conto di questa richiesta nella generazione dell'avventura):
+"${ep.freeText.trim()}"
+Cerca di soddisfare questa richiesta il più possibile.`;
+      }
+
       prompt = `Sei un pazzo avventuriero italiano senza limiti. L'utente si trova a (${lat}, ${lng}) e vuole fare qualcosa di ESTREMO, ASSURDO, FOLLE ma fattibile nella realtà.
 ${extremeContext}
 
@@ -230,7 +249,17 @@ Rispondi SOLO con JSON valido:
   "aiReview": "Recensione in prima persona folle, tipo 'L'ho fatto e i carabinieri mi hanno guardato malissimo. 10/10 lo rifarei.'",
   "nearbyPlaces": [{"name": "Posto reale vicino", "type": "bar", "description": "Dove festeggiare dopo l'impresa"}],
   "aiPlan": "Piano DETTAGLIATO e PRATICO dell'avventura estrema: orari, mezzi, cosa portare, dove dormire, costi stimati (che rispettano il budget), consigli di sopravvivenza. Scrivi come un amico pazzo.",
-  "directions": "Come arrivarci partendo dalla posizione dell'utente con il mezzo scelto"
+  "directions": "Come arrivarci partendo dalla posizione dell'utente con il mezzo scelto",
+  "costBreakdown": {
+    "carburante": {"descrizione": "Calcolo carburante A/R con consumo veicolo", "costo": 00.00},
+    "trasporto": {"descrizione": "Biglietti trasporto se applicabile", "costo": 00.00},
+    "alloggio": {"descrizione": "Dove si dorme e quanto costa", "costo": 00.00},
+    "cibo": {"descrizione": "Stima pasti per la durata", "costo": 00.00},
+    "attivita": {"descrizione": "Costi attività/esperienze", "costo": 00.00},
+    "altro": {"descrizione": "Costi extra (attrezzatura, ecc)", "costo": 00.00},
+    "totale": 00.00,
+    "nota": "Costo totale stimato per persona"
+  }
 }`;
     } else {
 
@@ -255,6 +284,12 @@ Rispondi SOLO con JSON valido:
         famiglia: "con la famiglia",
         gruppo: "in gruppo di amici",
       };
+      const budgetLabels: Record<string, string> = {
+        economico: "ECONOMICO (€0-50 al giorno a persona) — cerca posti gratis o quasi, street food, niente ingressi costosi",
+        medio: "MEDIO (€50-100 al giorno a persona) — ristoranti normali, qualche ingresso, spese moderate",
+        comfort: "COMFORT (€100-200 al giorno a persona) — ristoranti buoni, ingressi, esperienze di qualità",
+        lusso: "LUSSO (€200+ al giorno a persona) — ristoranti top, esperienze premium, nessun limite",
+      };
       const daysLabel = touristPrefs.tripDays <= 1
         ? "una giornata (andata e ritorno)"
         : touristPrefs.tripDays <= 2
@@ -265,17 +300,123 @@ Rispondi SOLO con JSON valido:
         ? `${touristPrefs.tripDays} giorni`
         : "una vacanza lunga (10+ giorni)";
 
+      // Departure point and month info
+      const hasDeparture = touristPrefs.departurePoint && touristPrefs.departurePoint.trim();
+      const departureLabel = hasDeparture ? touristPrefs.departurePoint!.trim() : `la posizione dell'utente (${lat}, ${lng})`;
+      const monthsIt = ["gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno", "luglio", "agosto", "settembre", "ottobre", "novembre", "dicembre"];
+      const travelMonthLabel = touristPrefs.travelMonth
+        ? (() => {
+            const [y, m] = touristPrefs.travelMonth.split("-");
+            return `${monthsIt[parseInt(m, 10) - 1]} ${y}`;
+          })()
+        : null;
+
+      // Fuel consumption estimates for cost calculation
+      const fuelInfo: Record<string, string> = {
+        auto: "Consumo medio auto: ~6.5 L/100km, prezzo benzina: ~1.85 €/L. Calcola andata e ritorno.",
+        treno: `L'utente viaggia IN TRENO.
+STAZIONE DI PARTENZA: ${hasDeparture ? `"${departureLabel}" (OBBLIGATORIA — il treno DEVE partire da questa stazione!)` : `Identifica la stazione più vicina a (${lat}, ${lng})`}
+${travelMonthLabel ? `PERIODO: ${travelMonthLabel} — cerca biglietti/prezzi tipici per questo mese.` : ""}
+
+ISTRUZIONI TRENO (OBBLIGATORIE):
+1. Il treno DEVE partire dalla stazione "${departureLabel}"
+2. Identifica la stazione di arrivo più vicina alla destinazione
+3. Suggerisci un TRENO SPECIFICO con: compagnia REALE (Trenitalia Regionale, Trenitalia Frecciarossa/Frecciargento/Frecciabianca, Italo, Trenord), tipo treno, orario plausibile, durata, prezzo stimato
+4. Se servono CAMBI, specifica OGNI cambio: stazione, tempo di attesa, treno successivo
+5. Per distanze <150km → treni regionali (€5-20). Per 150-500km → Frecce/Italo (€20-70). Per >500km → Alta Velocità (€40-90)
+6. PREZZI: Regionale Veloce ~€8-20, InterCity ~€15-35, Frecciarossa/Italo economy ~€25-50, business ~€50-90
+7. La destinazione DEVE essere raggiungibile in treno! Se non ha stazione vicina, scegli un'ALTRA destinazione
+8. In "directions" spiega come arrivare dalla stazione di arrivo alla destinazione (a piedi, bus, taxi)
+9. Compila "transportInfo" con TUTTI i dettagli precisi del viaggio
+10. In "consigli" di transportInfo: suggerisci app/siti per comprare (trenitalia.it, italotreno.it), se prenotare in anticipo, offerte speciali
+11. In "linkPrenotazione": metti il URL reale per prenotare (https://www.trenitalia.com o https://www.italotreno.it)`,
+
+        aereo: `L'utente viaggia IN AEREO.
+AEROPORTO DI PARTENZA: ${hasDeparture ? `"${departureLabel}" (OBBLIGATORIO — il volo DEVE partire da questo aeroporto!)` : `Identifica l'aeroporto più vicino a (${lat}, ${lng})`}
+${travelMonthLabel ? `PERIODO: ${travelMonthLabel} — cerca voli/prezzi tipici per questo mese. Considera alta/bassa stagione.` : ""}
+
+ISTRUZIONI VOLO (OBBLIGATORIE):
+1. Il volo DEVE partire dall'aeroporto "${departureLabel}"
+2. Identifica l'aeroporto di arrivo più vicino alla destinazione
+3. Suggerisci un VOLO SPECIFICO con: compagnia aerea REALE (Ryanair, easyJet, Wizz Air, ITA Airways, Vueling, Volotea, ecc.), rotta, orario tipo, durata, prezzo stimato
+4. Se serve uno SCALO, specifica: aeroporto di scalo, tempo di attesa
+5. PREZZI REALISTICI per il periodo indicato: Ryanair/easyJet Italia €20-60, Europa €30-120. ITA Airways Italia €50-150, Europa €80-250
+6. Considera la STAGIONE: estate (giugno-agosto) = prezzi più alti. Inverno = prezzi più bassi. Prenotare 2-3 mesi prima = risparmi
+7. La destinazione DEVE avere un aeroporto raggiungibile! Se non c'è, scegli un'ALTRA destinazione
+8. In "directions" spiega come arrivare dall'aeroporto alla destinazione (bus, treno locale, taxi, ecc.)
+9. Compila "transportInfo" con TUTTI i dettagli precisi del volo
+10. In "consigli": siti per confrontare prezzi (skyscanner.it, google.com/flights), trucchi per risparmiare, app delle compagnie
+11. In "linkPrenotazione": URL per prenotare (es: https://www.ryanair.com, https://www.skyscanner.it)`,
+
+        traghetto: `L'utente viaggia IN TRAGHETTO.
+PORTO DI PARTENZA: ${hasDeparture ? `"${departureLabel}" (OBBLIGATORIO — il traghetto DEVE partire da questo porto!)` : `Identifica il porto più vicino a (${lat}, ${lng})`}
+${travelMonthLabel ? `PERIODO: ${travelMonthLabel} — cerca traghetti/prezzi tipici per questo mese. Estate = più frequenze e più caro.` : ""}
+
+ISTRUZIONI TRAGHETTO (OBBLIGATORIE):
+1. Il traghetto DEVE partire dal porto "${departureLabel}"
+2. Identifica il porto di arrivo più vicino alla destinazione
+3. Suggerisci un TRAGHETTO SPECIFICO con: compagnia REALE (Tirrenia, Moby, Corsica Ferries, GNV, Grimaldi Lines, Toremar, Caremar, SNAV, Blu Navy, Liberty Lines), rotta, orario tipo, durata navigazione, prezzo stimato
+4. PREZZI REALISTICI: traghetti brevi (<2h) €10-30/persona. Sardegna/Sicilia €40-80/persona, con auto €80-200. Corsica €35-70/persona
+5. Specifica SEMPRE: prezzo solo passeggero vs con auto a bordo, tipo di posto (poltrona, cabina)
+6. Considera che i traghetti NOTTURNI spesso sono più convenienti e risparmiano una notte di hotel
+7. La destinazione DEVE essere raggiungibile via mare! (isole, coste, ecc.)
+8. In "directions" spiega come arrivare dal porto alla destinazione
+9. Compila "transportInfo" con TUTTI i dettagli precisi del traghetto
+10. In "consigli": dove prenotare (directferries.it, sito della compagnia), quanto anticipo serve, offerte early booking
+11. In "linkPrenotazione": URL per prenotare (es: https://www.directferries.it, https://www.moby.it)`,
+      };
+
       touristContext = `
 Dettagli viaggio turista:
-- Mezzo di trasporto: ${transportLabels[touristPrefs.transport] || "auto"}
+- Mezzo di trasporto: ${transportLabels[touristPrefs.transport] || "auto"}${hasDeparture ? `\n- PUNTO DI PARTENZA: ${departureLabel}` : ""}
 - Alloggio preferito: ${accomLabels[touristPrefs.accommodation] || "B&B"}
+- Budget: ${budgetLabels[touristPrefs.budget] || "MEDIO"}
 - Durata: ${daysLabel}
 - Viaggia ${groupLabels[touristPrefs.groupSize] || "in coppia"}
-- Data partenza: ${touristPrefs.targetDate || "non specificata"}
-- ${touristPrefs.allowAbroad ? "Disponibile ad andare FUORI dall'Italia (suggerisci mete europee raggiungibili)." : "DEVE restare in ITALIA, non suggerire mete all'estero."}`;
+- ${travelMonthLabel ? `Mese di viaggio: ${travelMonthLabel}` : `Data partenza: ${touristPrefs.targetDate || "non specificata"}`}
+
+ISTRUZIONI COSTI TRASPORTO:
+${fuelInfo[touristPrefs.transport] || fuelInfo.auto}`;
+
+      // Interests
+      if (touristPrefs.interests && touristPrefs.interests.length > 0) {
+        touristContext += `\n\nINTERESSI DELL'UTENTE (IMPORTANTE — la destinazione DEVE soddisfare almeno alcuni di questi):
+${touristPrefs.interests.map((i: string) => `- ${i}`).join("\n")}
+Cerca posti che combinino questi interessi. Ad esempio se l'utente ha scelto "natura" e "cibo", cerca un borgo immerso nella natura con ottima cucina locale.`;
+      }
+
+      // Pace
+      if (touristPrefs.pace) {
+        const paceLabels: Record<string, string> = {
+          rilassato: "RILASSATO — poche tappe, niente fretta, godersi il momento. Max 2-3 attività al giorno.",
+          moderato: "MODERATO — il giusto equilibrio tra relax e esplorazione. 3-5 attività al giorno.",
+          intenso: "INTENSO — vedere tutto il possibile, giornate piene dalla mattina alla sera. 5+ attività al giorno.",
+        };
+        touristContext += `\n- Ritmo della giornata: ${paceLabels[touristPrefs.pace] || "moderato"}`;
+      }
+
+      // Travel style
+      if (touristPrefs.travelStyle) {
+        const styleLabels: Record<string, string> = {
+          culturale: "CULTURALE — musei, monumenti, storia, architettura. Posti con forte valore culturale.",
+          avventuroso: "AVVENTUROSO — trekking, grotte, cascate, posti selvaggi. Fuori dai sentieri battuti.",
+          romantico: "ROMANTICO — posti intimi, tramonti, cene a lume di candela, atmosfera magica.",
+          gourmet: "GOURMET — enogastronomia, cantine, mercati, ristoranti tipici, degustazioni.",
+          sportivo: "SPORTIVO — attività fisiche, sport all'aperto, bici, kayak, arrampicata.",
+          spirituale: "SPIRITUALE — eremi, abbazie, luoghi di meditazione, natura incontaminata, silenzio.",
+        };
+        touristContext += `\n- Stile di viaggio: ${styleLabels[touristPrefs.travelStyle] || touristPrefs.travelStyle}`;
+      }
+
+      // Free text
+      if (touristPrefs.freeText && touristPrefs.freeText.trim()) {
+        touristContext += `\n\nRICHIESTA SPECIALE DELL'UTENTE (PRIORITÀ ALTA — tieni conto di questa richiesta):
+"${touristPrefs.freeText.trim()}"
+Cerca di soddisfare questa richiesta il più possibile nella scelta della destinazione e nel piano.`;
+      }
 
       // Abroad + short trip warning — restrict AI
-      if (touristPrefs.allowAbroad) {
+      if (allowAbroad) {
         if (touristPrefs.tripDays <= 1 && touristPrefs.transport !== "aereo") {
           touristContext += `\nATTENZIONE: l'utente vuole andare all'estero ma ha solo 1 giorno e viaggia ${transportLabels[touristPrefs.transport]}. Suggerisci comunque una meta in ITALIA vicina al confine, spiegando che per l'estero serve più tempo.`;
         }
@@ -313,6 +454,36 @@ Parte il ${bikerPrefs.targetDate || "oggi"} alle ${bikerPrefs.targetTime || "10:
 Viaggia ${bikerPrefs.groupSize === "coppia" ? "in coppia" : bikerPrefs.groupSize === "gruppo" ? "in gruppo" : "da solo"}.
 ${bikerPrefs.preferScenic ? "Preferisce strade panoramiche." : ""}
 ${bikerPrefs.avoidHighways ? "Vuole evitare autostrade." : ""}`;
+
+      // Experience level
+      if (bikerPrefs.experience) {
+        const expLabels: Record<string, string> = {
+          principiante: "PRINCIPIANTE — strade facili, larghe, ben asfaltate, niente tornanti stretti o sterrati. Curve dolci e percorsi rilassanti.",
+          intermedio: "INTERMEDIO — un mix di strade, può gestire tornanti e qualche tratto impegnativo ma niente di estremo.",
+          esperto: "ESPERTO — cerca strade impegnative, tornanti stretti, passi alpini, curve tecniche. Più è difficile meglio è.",
+        };
+        bikerContext += `\nLivello esperienza: ${expLabels[bikerPrefs.experience] || "intermedio"}`;
+      }
+
+      // Preferred road types
+      if (bikerPrefs.roadTypes && bikerPrefs.roadTypes.length > 0) {
+        const roadLabels: Record<string, string> = {
+          tornanti: "tornanti e curve strette",
+          sterrato: "tratti sterrati e off-road",
+          costiera: "strade costiere sul mare",
+          montagna: "strade di montagna e passi",
+          collina: "strade collinari panoramiche",
+          pianura: "strade di pianura lunghe e rettilinee",
+        };
+        bikerContext += `\nTipi di strade preferite: ${bikerPrefs.roadTypes.map((r: string) => roadLabels[r] || r).join(", ")}.`;
+      }
+
+      // Free text
+      if (bikerPrefs.freeText && bikerPrefs.freeText.trim()) {
+        bikerContext += `\n\nRICHIESTA SPECIALE DEL MOTOCICLISTA (PRIORITÀ ALTA — tieni conto di questa richiesta):
+"${bikerPrefs.freeText.trim()}"
+Cerca di soddisfare questa richiesta il più possibile nella scelta della destinazione e nel piano.`;
+      }
     }
 
     const modeInstructions =
@@ -320,7 +491,13 @@ ${bikerPrefs.avoidHighways ? "Vuole evitare autostrade." : ""}`;
         ? `L'utente è un TURISTA. Cerca posti con valore storico, artistico o naturale: borghi nascosti, laghi poco conosciuti, abbazie, castelli dimenticati, siti archeologici minori, eremi, parchi naturali poco frequentati. EVITA le mete turistiche famose e mainstream (no Cinque Terre, no Amalfi, no Lago di Garda, no San Gimignano, ecc). Cerca le perle NASCOSTE che solo un locale conosce.${touristContext}`
         : `L'utente è un MOTOCICLISTA. Cerca passi di montagna, strade panoramiche con curve, valichi poco frequentati, strade provinciali spettacolari, percorsi con asfalto buono e alta tortuosità. Privilegia strade statali e provinciali, non autostrade. Includi valutazione qualità asfalto (1-5) e rating curve (1-5). EVITA i passi ultra-famosi (no Stelvio, no Sella, no Gardena). Cerca i passi e le strade SEGRETE che solo i motociclisti locali conoscono.${bikerContext}`;
 
-    prompt = `Sei un esperto viaggiatore italiano che conosce ogni angolo nascosto d'Italia. L'utente si trova a coordinate (${lat}, ${lng}) e cerca una destinazione per una gita fuori porta entro ${radius} km.
+    const distanceInstruction = allowAbroad
+      ? `L'utente può uscire dall'Italia — suggerisci mete in tutta Europa raggiungibili.`
+      : `La destinazione DEVE trovarsi a una distanza compresa tra ${minRadius} km e ${maxRadius} km dalla posizione dell'utente. NON suggerire posti più vicini di ${minRadius} km e NON più lontani di ${maxRadius} km. Rispetta RIGOROSAMENTE questo range di distanza.`;
+
+    prompt = `Sei un esperto viaggiatore italiano che conosce ogni angolo nascosto d'Italia. L'utente si trova a coordinate (${lat}, ${lng}).
+
+VINCOLO DISTANZA (OBBLIGATORIO): ${distanceInstruction}
 
 ${modeInstructions}
 ${excludeList}
@@ -351,14 +528,73 @@ Rispondi SOLO con un JSON valido (nessun testo prima o dopo), con questa struttu
   "aiReview": "Una mini-recensione personale in prima persona di 1-2 frasi, come se ci fossi stato.",
   "nearbyPlaces": [{"name": "Nome ristorante/bar reale vicino", "type": "ristorante", "description": "Cosa si mangia bene qui"}],
   "aiPlan": "Piano dettagliato: a che ora partire, che strada fare, cosa vedere, dove fermarsi. Scrivi come un amico.",
-  "directions": "Percorso stradale: prendi via X, poi SP45 direzione Y..."
+  "directions": "Percorso stradale: prendi via X, poi SP45 direzione Y...",
+  "costBreakdown": {
+    "carburante": {"descrizione": "Benzina A/R ~XXX km, consumo ~6.5L/100km a €1.85/L", "costo": 00.00},
+    "trasporto": {"descrizione": "Biglietto treno/aereo/traghetto (se applicabile, altrimenti ometti)", "costo": 00.00},
+    "alloggio": {"descrizione": "X notti in [tipo alloggio] a ~€XX/notte", "costo": 00.00},
+    "cibo": {"descrizione": "Pasti stimati per X giorni: colazione, pranzo, cena", "costo": 00.00},
+    "pedaggi": {"descrizione": "Pedaggi autostradali A/R (se applicabili)", "costo": 00.00},
+    "attivita": {"descrizione": "Ingressi, visite, esperienze", "costo": 00.00},
+    "totale": 00.00,
+    "nota": "Costo stimato per [numero persone] persona/e"
+  }${mode === "tourist" && touristPrefs && ["treno", "aereo", "traghetto"].includes(touristPrefs.transport) ? `,
+  "transportInfo": {
+    "tipo": "${touristPrefs.transport}",
+    "andata": {
+      "compagnia": "Nome compagnia (es: Trenitalia Frecciarossa, Ryanair, Moby Lines)",
+      "partenza": "Stazione/Aeroporto/Porto di partenza più vicino all'utente",
+      "arrivo": "Stazione/Aeroporto/Porto di arrivo più vicino alla destinazione",
+      "orario": "HH:MM - HH:MM (orario partenza - arrivo stimato)",
+      "durata": "Xh XXmin",
+      "prezzo": "€XX-XX a persona",
+      "note": "Eventuali cambi, scali, info utili"
+    },
+    "ritorno": {
+      "compagnia": "Nome compagnia per il ritorno",
+      "partenza": "Stazione/Aeroporto/Porto di partenza ritorno",
+      "arrivo": "Stazione/Aeroporto/Porto di arrivo ritorno",
+      "orario": "HH:MM - HH:MM",
+      "durata": "Xh XXmin",
+      "prezzo": "€XX-XX a persona",
+      "note": "Eventuali cambi, scali"
+    },
+    "consigli": "Consigli pratici: dove prenotare, con quanto anticipo, offerte, app da usare",
+    "linkPrenotazione": "URL del sito per prenotare (es: trenitalia.it, ryanair.com, directferries.it)"
+  }` : ""}
 }
 
 ${mode === "biker" ? 'Per i biker: "altitude" deve essere un numero (metri slm), "roadQuality" da 1 a 5, "curvinessRating" da 1 a 5.' : '"altitude", "roadQuality" e "curvinessRating" possono essere null per i turisti.'}
 "hiddenGemRating" è da 1 a 5 dove 5 = posto segretissimo che quasi nessuno conosce.
 "nearbyPlaces" deve avere 1-3 posti REALI dove mangiare/bere vicino alla destinazione.
 "aiPlan" deve essere un piano completo e pratico per la giornata.
-"directions" deve descrivere il percorso stradale con nomi di strade reali.`;
+"directions" deve descrivere il percorso stradale con nomi di strade reali.
+
+REGOLE PER costBreakdown (IMPORTANTISSIMO):
+- Calcola i costi in modo REALISTICO e DETTAGLIATO per l'Italia nel 2024-2025.
+- "carburante": calcola distanza A/R in km, consumo del veicolo (~6.5 L/100km per auto, ~5 L/100km per moto), prezzo benzina €1.85/L. Scrivi il calcolo nella descrizione.
+- "trasporto": se il mezzo è treno/aereo/traghetto, inserisci il costo stimato del biglietto per la tratta. Se è auto, ometti questo campo.
+- "alloggio": costo per notte in base al tipo di alloggio scelto. Se è una giornata (trip=1 giorno), ometti.
+- "cibo": stima realistica (colazione ~€3-5, pranzo ~€12-25, cena ~€15-35 a persona secondo il budget).
+- "pedaggi": stima realistica dei pedaggi autostradali per la tratta (se ci sono). Se non ci sono autostrade, ometti.
+- "attivita": eventuali biglietti d'ingresso, guide, noleggi, esperienze.
+- "totale": somma di TUTTI i costi sopra. DEVE essere la somma corretta.
+- "nota": specifica se i costi sono per persona, per coppia, o per il gruppo. Basati sulla groupSize dell'utente.
+- Ometti i campi con costo zero (non includere nel JSON campi con costo 0).
+- I costi devono essere COERENTI con il budget scelto dall'utente.${mode === "tourist" && touristPrefs && ["treno", "aereo", "traghetto"].includes(touristPrefs.transport) ? `
+
+REGOLE PER transportInfo (OBBLIGATORIO per ${touristPrefs.transport.toUpperCase()}):
+- Il campo "transportInfo" è OBBLIGATORIO perché l'utente ha scelto di viaggiare in ${touristPrefs.transport}.
+- Tutti i dati devono essere REALISTICI e basati su compagnie, tratte e prezzi che esistono davvero.
+- "compagnia": usa compagnie REALI che operano su quella tratta (Trenitalia, Italo, Ryanair, easyJet, Moby, Tirrenia, ecc.).
+- "partenza" e "arrivo": usa nomi REALI di stazioni/aeroporti/porti.
+- "orario": suggerisci orari plausibili basati sulla tratta.
+- "durata": tempo di viaggio realistico per quella tratta.
+- "prezzo": fascia di prezzo realistica per quella tratta e compagnia.
+- "ritorno": compila anche il ritorno con stessa cura.
+- "consigli": suggerisci il sito/app per prenotare, se prenotare in anticipo, trucchi per risparmiare.
+- "linkPrenotazione": URL reale del sito di prenotazione (trenitalia.it, italotreno.it, ryanair.com, easyjet.com, directferries.it, ecc.).
+- Nel "directions" spiega come arrivare dalla stazione/aeroporto/porto alla destinazione finale.` : ""}`;
     } // end else (non-extreme)
 
     // Groq free models — try the best first, then fallbacks
@@ -453,6 +689,36 @@ ${mode === "biker" ? 'Per i biker: "altitude" deve essere un numero (metri slm),
       );
     }
 
+    // Server-side distance validation (haversine)
+    if (!allowAbroad) {
+      const R = 6371;
+      const dLat = ((suggestion.lat - lat) * Math.PI) / 180;
+      const dLng = ((suggestion.lng - lng) * Math.PI) / 180;
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos((lat * Math.PI) / 180) *
+          Math.cos((suggestion.lat * Math.PI) / 180) *
+          Math.sin(dLng / 2) *
+          Math.sin(dLng / 2);
+      const actualDistance = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+      // Allow 15% tolerance (AI coordinates aren't always exact center of town)
+      const toleranceMin = minRadius * 0.85;
+      const toleranceMax = maxRadius * 1.15;
+
+      if (actualDistance < toleranceMin || actualDistance > toleranceMax) {
+        console.warn(
+          `⚠️ AI ha suggerito ${suggestion.name} a ${Math.round(actualDistance)}km, ma il range richiesto è ${minRadius}-${maxRadius}km. Rifiutato.`
+        );
+        return NextResponse.json(
+          {
+            error: `L'IA ha trovato un posto a ${Math.round(actualDistance)}km, fuori dal range ${minRadius}-${maxRadius}km. Riprova!`,
+          },
+          { status: 422 }
+        );
+      }
+    }
+
     // Calculate sunrise/sunset
     const targetDate = extremePrefs?.targetDate || bikerPrefs?.targetDate || touristPrefs?.targetDate || undefined;
     const sunTimes = calcSunTimes(suggestion.lat, suggestion.lng, targetDate);
@@ -509,6 +775,8 @@ ${mode === "biker" ? 'Per i biker: "altitude" deve essere un numero (metri slm),
       nearbyPlaces: suggestion.nearbyPlaces || undefined,
       aiPlan: suggestion.aiPlan || undefined,
       directions: suggestion.directions || undefined,
+      costBreakdown: suggestion.costBreakdown || undefined,
+      transportInfo: suggestion.transportInfo || undefined,
       sunsetTime: sunTimes.sunset,
       sunriseTime: sunTimes.sunrise,
       source: "ai" as const,

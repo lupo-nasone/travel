@@ -92,7 +92,8 @@ export function buildMapsUrl(
 export function selectDestination(
   destinations: Destination[],
   userPos: GeoPosition,
-  radius: number,
+  minRadius: number,
+  maxRadius: number,
   mode: TravelMode,
   weatherMap: Map<string, WeatherData>,
   excludeIds: string[] = []
@@ -101,7 +102,7 @@ export function selectDestination(
   distance: number;
   weather: WeatherData | null;
 } | null {
-  // Filter by distance & weather
+  // Filter by distance range & weather
   const candidates = destinations
     .filter((d) => !excludeIds.includes(d.id))
     .map((d) => ({
@@ -109,7 +110,7 @@ export function selectDestination(
       distance: haversineDistance(userPos, { lat: d.lat, lng: d.lng }),
       weather: weatherMap.get(d.id) || null,
     }))
-    .filter((c) => c.distance <= radius)
+    .filter((c) => c.distance >= minRadius && c.distance <= maxRadius)
     .filter((c) => {
       if (!c.weather) return true;
       return isWeatherSuitable(c.weather, mode);
@@ -124,9 +125,10 @@ export function selectDestination(
   const scored = candidates.map((c) => {
     let weight = 10; // base weight so every candidate has a chance
 
-    // Small distance bonus (prefer sweet-spot but not too strongly)
-    const idealDistance = radius * 0.5;
-    const distanceFit = 1 - Math.abs(c.distance - idealDistance) / radius;
+    // Small distance bonus (prefer middle of range)
+    const idealDistance = (minRadius + maxRadius) / 2;
+    const rangeSpan = maxRadius - minRadius || 1;
+    const distanceFit = 1 - Math.abs(c.distance - idealDistance) / rangeSpan;
     weight += distanceFit * 10;
 
     // Weather bonus

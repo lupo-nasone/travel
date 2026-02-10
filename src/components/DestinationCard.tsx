@@ -1,17 +1,168 @@
 "use client";
 
-import { DestinationResult, TravelMode } from "@/lib/types";
+import { DestinationResult, TravelMode, CostBreakdown, Destination } from "@/lib/types";
 
 interface DestinationCardProps {
   result: DestinationResult;
   mode: TravelMode;
   onReset: () => void;
+  onAccept?: () => void;
+  isGeneratingItinerary?: boolean;
+}
+
+function CostBreakdownSection({ breakdown }: { breakdown: CostBreakdown }) {
+  const costItems: { emoji: string; label: string; descrizione: string; costo: number }[] = [];
+
+  if (breakdown.carburante && breakdown.carburante.costo > 0) {
+    costItems.push({ emoji: "⛽", label: "Carburante", ...breakdown.carburante });
+  }
+  if (breakdown.trasporto && breakdown.trasporto.costo > 0) {
+    costItems.push({ emoji: "🎫", label: "Trasporto", ...breakdown.trasporto });
+  }
+  if (breakdown.alloggio && breakdown.alloggio.costo > 0) {
+    costItems.push({ emoji: "🏨", label: "Alloggio", ...breakdown.alloggio });
+  }
+  if (breakdown.cibo && breakdown.cibo.costo > 0) {
+    costItems.push({ emoji: "🍽️", label: "Cibo", ...breakdown.cibo });
+  }
+  if (breakdown.pedaggi && breakdown.pedaggi.costo > 0) {
+    costItems.push({ emoji: "🛣️", label: "Pedaggi", ...breakdown.pedaggi });
+  }
+  if (breakdown.attivita && breakdown.attivita.costo > 0) {
+    costItems.push({ emoji: "🎟️", label: "Attività", ...breakdown.attivita });
+  }
+  if (breakdown.altro && breakdown.altro.costo > 0) {
+    costItems.push({ emoji: "📦", label: "Altro", ...breakdown.altro });
+  }
+
+  if (costItems.length === 0 && !breakdown.totale) return null;
+
+  return (
+    <div className="rounded-2xl bg-gradient-to-br from-green-500/10 to-emerald-500/10 border border-green-500/20 p-4">
+      <p className="text-xs font-semibold text-emerald-300 mb-3 uppercase tracking-wide flex items-center gap-1.5">
+        <span className="text-base">💰</span> Stima costi viaggio
+      </p>
+      <div className="space-y-2">
+        {costItems.map((item, i) => (
+          <div
+            key={i}
+            className="flex items-center justify-between rounded-xl bg-white/5 px-3 py-2.5"
+          >
+            <div className="flex items-start gap-2 flex-1 min-w-0">
+              <span className="text-base shrink-0 mt-0.5">{item.emoji}</span>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-white/90">{item.label}</p>
+                <p className="text-xs text-white/50 leading-relaxed truncate">
+                  {item.descrizione}
+                </p>
+              </div>
+            </div>
+            <span className="text-sm font-bold text-emerald-300 shrink-0 ml-3">
+              €{typeof item.costo === 'number' ? item.costo.toFixed(0) : '0'}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      {/* Total */}
+      {breakdown.totale != null && (
+        <div className="mt-3 flex items-center justify-between rounded-xl bg-emerald-500/15 border border-emerald-500/25 px-4 py-3">
+          <span className="text-sm font-bold text-white flex items-center gap-1.5">
+            <span className="text-base">🧾</span> Totale stimato
+          </span>
+          <span className="text-lg font-black text-emerald-300">
+            €{breakdown.totale.toFixed(0)}
+          </span>
+        </div>
+      )}
+
+      {/* Note */}
+      {breakdown.nota && (
+        <p className="mt-2 text-center text-xs text-white/40 italic">
+          {breakdown.nota}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function TransportInfoSection({ info }: { info: NonNullable<Destination["transportInfo"]> }) {
+  const tipoEmoji: Record<string, string> = {
+    treno: "🚂",
+    aereo: "✈️",
+    traghetto: "⛴️",
+  };
+  const tipoLabel: Record<string, string> = {
+    treno: "Treno",
+    aereo: "Volo",
+    traghetto: "Traghetto",
+  };
+
+  const renderLeg = (
+    leg: { compagnia: string; partenza: string; arrivo: string; orario: string; durata: string; prezzo: string; note?: string },
+    label: string
+  ) => (
+    <div className="rounded-xl bg-white/5 p-3 space-y-1.5">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-bold text-white/70 uppercase tracking-wide">{label}</span>
+        <span className="text-xs font-semibold text-sky-300">{leg.prezzo}</span>
+      </div>
+      <p className="text-sm font-semibold text-white/90">{leg.compagnia}</p>
+      <div className="flex items-center gap-2 text-xs text-white/60">
+        <span className="font-medium text-white/80">{leg.partenza}</span>
+        <span className="text-white/30">→</span>
+        <span className="font-medium text-white/80">{leg.arrivo}</span>
+      </div>
+      <div className="flex items-center gap-3 text-xs text-white/50">
+        <span>🕐 {leg.orario}</span>
+        <span>⏱️ {leg.durata}</span>
+      </div>
+      {leg.note && (
+        <p className="text-[11px] text-white/40 italic">ℹ️ {leg.note}</p>
+      )}
+    </div>
+  );
+
+  return (
+    <div className="rounded-2xl bg-gradient-to-br from-sky-500/10 to-blue-500/10 border border-sky-500/20 p-4">
+      <p className="text-xs font-semibold text-sky-300 mb-3 uppercase tracking-wide flex items-center gap-1.5">
+        <span className="text-base">{tipoEmoji[info.tipo] || "🎫"}</span>
+        Come arrivarci in {tipoLabel[info.tipo] || info.tipo}
+      </p>
+
+      <div className="space-y-2.5">
+        {renderLeg(info.andata, "Andata")}
+        {info.ritorno && renderLeg(info.ritorno, "Ritorno")}
+      </div>
+
+      {info.consigli && (
+        <div className="mt-3 rounded-xl bg-sky-500/10 px-3 py-2.5">
+          <p className="text-xs text-sky-200/80 leading-relaxed">
+            <span className="font-bold">💡 Consiglio:</span> {info.consigli}
+          </p>
+        </div>
+      )}
+
+      {info.linkPrenotazione && (
+        <a
+          href={info.linkPrenotazione.startsWith("http") ? info.linkPrenotazione : `https://${info.linkPrenotazione}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-3 flex items-center justify-center gap-2 rounded-xl bg-sky-500/20 border border-sky-500/30 px-4 py-2.5 text-sm font-semibold text-sky-200 transition-all hover:bg-sky-500/30 hover:scale-[1.02]"
+        >
+          <span>🔗</span> Prenota su {info.linkPrenotazione.replace(/^https?:\/\//, "").replace(/\/.*$/, "")}
+        </a>
+      )}
+    </div>
+  );
 }
 
 export default function DestinationCard({
   result,
   mode,
   onReset,
+  onAccept,
+  isGeneratingItinerary,
 }: DestinationCardProps) {
   const { destination, distance, weather, travelTime, mapsUrl } = result;
 
@@ -244,6 +395,16 @@ export default function DestinationCard({
             </div>
           )}
 
+          {/* Transport Info — train/flight/ferry details */}
+          {destination.transportInfo && (
+            <TransportInfoSection info={destination.transportInfo} />
+          )}
+
+          {/* Cost Breakdown */}
+          {destination.costBreakdown && (
+            <CostBreakdownSection breakdown={destination.costBreakdown} />
+          )}
+
           {/* Nearby places to eat/drink */}
           {destination.nearbyPlaces && destination.nearbyPlaces.length > 0 && (
             <div className="rounded-2xl bg-emerald-500/8 border border-emerald-500/20 p-4">
@@ -286,6 +447,34 @@ export default function DestinationCard({
 
           {/* Action Buttons */}
           <div className="flex flex-col gap-3 pt-2">
+            {/* Accept & Plan button */}
+            {onAccept && (
+              <button
+                onClick={onAccept}
+                disabled={isGeneratingItinerary}
+                className="group relative flex items-center justify-center gap-2 rounded-2xl px-6 py-4 text-lg font-bold text-white transition-all duration-300 hover:scale-105 active:scale-95 shadow-lg disabled:opacity-70 disabled:cursor-wait disabled:hover:scale-100 overflow-hidden"
+                style={{
+                  background: "linear-gradient(135deg, #6366f1, #8b5cf6, #a855f7)",
+                  boxShadow: "0 10px 30px rgba(99, 102, 241, 0.3)",
+                }}
+              >
+                {isGeneratingItinerary ? (
+                  <span className="flex items-center gap-2">
+                    <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    Genero il tuo itinerario...
+                  </span>
+                ) : (
+                  <>
+                    <span className="text-xl transition-transform duration-300 group-hover:scale-125">📋</span>
+                    Accetta e Pianifica
+                  </>
+                )}
+              </button>
+            )}
+
             <a
               href={mapsUrl}
               target="_blank"

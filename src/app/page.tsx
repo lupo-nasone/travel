@@ -9,6 +9,14 @@ import LocationStatus from "@/components/LocationStatus";
 import BikerOptions from "@/components/BikerOptions";
 import TouristOptions from "@/components/TouristOptions";
 import ExtremeOptions from "@/components/ExtremeOptions";
+import ItineraryView from "@/components/ItineraryView";
+import UserMenu from "@/components/UserMenu";
+import SavedTripsList from "@/components/SavedTripsList";
+import AchievementsView from "@/components/AchievementsView";
+import AchievementToast from "@/components/AchievementToast";
+import LeaderboardView from "@/components/LeaderboardView";
+import { useAuth } from "@/components/AuthProvider";
+import { Achievement, ACHIEVEMENTS } from "@/data/achievements";
 import {
   TravelMode,
   GeoPosition,
@@ -19,6 +27,8 @@ import {
   BikerPreferences,
   TouristPreferences,
   ExtremePreferences,
+  FullItinerary,
+  SavedTrip,
 } from "@/lib/types";
 import {
   haversineDistance,
@@ -31,8 +41,11 @@ import staticDb from "@/data/destinations.json";
 type LocationState = "idle" | "loading" | "success" | "error";
 
 export default function Home() {
+  const { user } = useAuth();
   const [mode, setMode] = useState<TravelMode>("tourist");
-  const [radius, setRadius] = useState(100);
+  const [minRadius, setMinRadius] = useState(50);
+  const [maxRadius, setMaxRadius] = useState(200);
+  const [allowAbroad, setAllowAbroad] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<DestinationResult | null>(null);
   const [userPos, setUserPos] = useState<GeoPosition | null>(null);
@@ -45,6 +58,25 @@ export default function Home() {
   const [isExtremeMode, setIsExtremeMode] = useState(false);
   const [showExtremePanel, setShowExtremePanel] = useState(false);
 
+  // Itinerary state
+  const [itinerary, setItinerary] = useState<FullItinerary | null>(null);
+  const [isGeneratingItinerary, setIsGeneratingItinerary] = useState(false);
+  const [showItinerary, setShowItinerary] = useState(false);
+
+  // Saved trips state
+  const [savedTrips, setSavedTrips] = useState<SavedTrip[]>([]);
+  const [showSavedTrips, setShowSavedTrips] = useState(false);
+  const [isLoadingSavedTrips, setIsLoadingSavedTrips] = useState(false);
+  const [isSavingTrip, setIsSavingTrip] = useState(false);
+  const [tripSaved, setTripSaved] = useState(false);
+  const [savedTripId, setSavedTripId] = useState<string | null>(null);
+
+  // Achievements state
+  const [unlockedAchievements, setUnlockedAchievements] = useState<Set<string>>(new Set());
+  const [showAchievements, setShowAchievements] = useState(false);
+  const [toastQueue, setToastQueue] = useState<Achievement[]>([]);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
+
   // Extreme-specific preferences
   const [extremePrefs, setExtremePrefs] = useState<ExtremePreferences>({
     transport: "auto",
@@ -55,21 +87,30 @@ export default function Home() {
   const today = new Date().toISOString().split("T")[0];
   const [bikerPrefs, setBikerPrefs] = useState<BikerPreferences>({
     intent: "curve",
+    experience: "intermedio",
+    roadTypes: [],
     targetDate: today,
     targetTime: "10:00",
     preferScenic: true,
     avoidHighways: true,
     groupSize: "solo",
+    freeText: "",
   });
 
   // Tourist-specific preferences
+  const currentMonth = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`;
   const [touristPrefs, setTouristPrefs] = useState<TouristPreferences>({
     transport: "auto",
     accommodation: "bnb",
-    allowAbroad: false,
+    budget: "medio",
+    interests: [],
+    pace: "moderato",
     tripDays: 1,
     targetDate: today,
+    travelMonth: currentMonth,
+    departurePoint: "",
     groupSize: "coppia",
+    freeText: "",
   });
 
   // Auto-request geolocation on mount
@@ -136,6 +177,8 @@ export default function Home() {
     setResult(null);
     setNoResultMessage("");
     setAiUsed(null);
+    setTripSaved(false);
+    setShowSavedTrips(false);
 
     try {
       // === TRY AI FIRST ===
@@ -149,7 +192,9 @@ export default function Home() {
           body: JSON.stringify({
             lat: userPos.lat,
             lng: userPos.lng,
-            radius,
+            minRadius: allowAbroad || (mode === "tourist" && touristPrefs.transport !== "auto") ? 0 : minRadius,
+            maxRadius: allowAbroad || (mode === "tourist" && touristPrefs.transport !== "auto") ? 99999 : maxRadius,
+            allowAbroad,
             mode,
             excludeNames: seenNames,
             extreme: isExtremeMode,
@@ -206,7 +251,8 @@ export default function Home() {
         const picked = selectDestination(
           pool as Destination[],
           userPos,
-          radius,
+          allowAbroad ? 99999 : minRadius,
+          allowAbroad ? 99999 : maxRadius,
           mode,
           weatherMap,
           seenStaticIds
@@ -267,21 +313,297 @@ export default function Home() {
       };
 
       setResult(destinationResult);
+
+      // Track achievement
+      trackAction("spin", {
+        mode,
+        distance,
+        extreme: isExtremeMode,
+        allowAbroad,
+        transport: mode === "tourist" ? touristPrefs.transport : "moto",
+        budget: mode === "tourist" ? touristPrefs.budget : undefined,
+        interests: mode === "tourist" ? touristPrefs.interests : [],
+        tripDays: mode === "tourist" ? touristPrefs.tripDays : 1,
+        groupSize: mode === "tourist" ? touristPrefs.groupSize : mode === "biker" ? bikerPrefs.groupSize : "solo",
+      });
     } catch (error) {
       console.error("Error:", error);
       setNoResultMessage("Si è verificato un errore. Riprova!");
     } finally {
       setIsLoading(false);
     }
-  }, [userPos, mode, radius, requestLocation, seenNames, seenStaticIds, bikerPrefs, touristPrefs, isExtremeMode, extremePrefs]);
+  }, [userPos, mode, minRadius, maxRadius, allowAbroad, requestLocation, seenNames, seenStaticIds, bikerPrefs, touristPrefs, isExtremeMode, extremePrefs]);
 
   const handleReset = useCallback(() => {
     setResult(null);
     setNoResultMessage("");
+    setItinerary(null);
+    setShowItinerary(false);
+    setTripSaved(false);
+    setSavedTripId(null);
+    setShowSavedTrips(false);
+    setShowAchievements(false);
+    setShowLeaderboard(false);
   }, []);
+
+  const handleAccept = useCallback(async () => {
+    if (!result || !userPos) return;
+
+    setIsGeneratingItinerary(true);
+    try {
+      const res = await fetch("/api/itinerary", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          destination: {
+            name: result.destination.name,
+            region: result.destination.region,
+            lat: result.destination.lat,
+            lng: result.destination.lng,
+            description: result.destination.description,
+            aiPlan: result.destination.aiPlan,
+            transportInfo: result.destination.transportInfo,
+            costBreakdown: result.destination.costBreakdown,
+            nearbyPlaces: result.destination.nearbyPlaces,
+          },
+          mode,
+          userLat: userPos.lat,
+          userLng: userPos.lng,
+          distance: result.distance,
+          travelTime: result.travelTime,
+          ...(mode === "biker" ? { bikerPrefs } : { touristPrefs }),
+        }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.itinerary) {
+        setItinerary(data.itinerary);
+        setShowItinerary(true);
+        // Track achievement
+        trackAction("itinerary", {
+          tripDays: data.itinerary.giorni?.length || 1,
+        });
+      } else {
+        console.error("Itinerary error:", data.error);
+        alert("Impossibile generare l'itinerario. Riprova tra poco.");
+      }
+    } catch (err) {
+      console.error("Itinerary fetch error:", err);
+      alert("Errore di rete. Riprova tra poco.");
+    } finally {
+      setIsGeneratingItinerary(false);
+    }
+  }, [result, userPos, mode, bikerPrefs, touristPrefs]);
+
+  // ===== SAVED TRIPS =====
+  const fetchSavedTrips = useCallback(async () => {
+    if (!user) return;
+    setIsLoadingSavedTrips(true);
+    try {
+      const res = await fetch("/api/trips");
+      const data = await res.json();
+      if (res.ok) setSavedTrips(data.trips || []);
+    } catch (err) {
+      console.error("Error fetching saved trips:", err);
+    } finally {
+      setIsLoadingSavedTrips(false);
+    }
+  }, [user]);
+
+  // Fetch saved trips when user logs in
+  useEffect(() => {
+    if (user) fetchSavedTrips();
+    else setSavedTrips([]);
+  }, [user, fetchSavedTrips]);
+
+  const handleSaveTrip = useCallback(async () => {
+    if (!user || !result || !itinerary) return;
+    setIsSavingTrip(true);
+    try {
+      const res = await fetch("/api/trips", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          destination_name: result.destination.name,
+          destination_region: result.destination.region,
+          destination_image: result.destination.image || "",
+          destination_lat: result.destination.lat,
+          destination_lng: result.destination.lng,
+          mode,
+          distance: result.distance,
+          trip_days: itinerary.giorni.length,
+          destination_data: result.destination,
+          itinerary_data: itinerary,
+          result_data: {
+            travelTime: result.travelTime,
+            mapsUrl: result.mapsUrl,
+          },
+        }),
+      });
+      if (res.ok) {
+        setTripSaved(true);
+        try {
+          const resData = await res.json();
+          if (resData.trip?.id) setSavedTripId(resData.trip.id);
+        } catch {
+          // response body may not be parseable, that's ok
+        }
+        fetchSavedTrips();
+        trackAction("save");
+      } else {
+        let errorMsg = "Errore nel salvataggio";
+        try {
+          const data = await res.json();
+          errorMsg = data.error || errorMsg;
+        } catch {
+          // ignore parse error
+        }
+        alert(errorMsg);
+      }
+    } catch (err) {
+      console.error("Error saving trip:", err);
+      alert("Errore di rete nel salvataggio");
+    } finally {
+      setIsSavingTrip(false);
+    }
+  }, [user, result, itinerary, mode, fetchSavedTrips]);
+
+  const handleDeleteTrip = useCallback(async (tripId: string) => {
+    try {
+      const res = await fetch(`/api/trips?id=${tripId}`, { method: "DELETE" });
+      if (res.ok) {
+        setSavedTrips((prev) => prev.filter((t) => t.id !== tripId));
+      }
+    } catch (err) {
+      console.error("Error deleting trip:", err);
+    }
+  }, []);
+
+  const handleLoadTrip = useCallback((trip: SavedTrip) => {
+    const dest = trip.destination_data as Destination;
+    const itin = trip.itinerary_data as FullItinerary;
+    const rData = trip.result_data as { travelTime: string; mapsUrl: string };
+
+    setResult({
+      destination: dest,
+      distance: trip.distance,
+      weather: null,
+      travelTime: rData?.travelTime || "",
+      mapsUrl: rData?.mapsUrl || "",
+    });
+    setItinerary(itin);
+    setShowItinerary(true);
+    setShowSavedTrips(false);
+    setTripSaved(true); // already saved
+    setSavedTripId(trip.id); // track which saved trip we loaded
+  }, []);
+
+  const handleShowSavedTrips = useCallback(() => {
+    setShowSavedTrips(true);
+    setShowAchievements(false);
+    setResult(null);
+    setItinerary(null);
+    setShowItinerary(false);
+    fetchSavedTrips();
+  }, [fetchSavedTrips]);
+
+  // ===== ACHIEVEMENTS =====
+  const fetchAchievements = useCallback(async () => {
+    if (!user) return;
+    try {
+      const res = await fetch("/api/achievements");
+      const data = await res.json();
+      if (res.ok && data.unlocked) {
+        setUnlockedAchievements(
+          new Set(data.unlocked.map((a: { achievement_id: string }) => a.achievement_id))
+        );
+      }
+    } catch (err) {
+      console.error("Error fetching achievements:", err);
+    }
+  }, [user]);
+
+  // Fetch achievements when user logs in
+  useEffect(() => {
+    if (user) {
+      fetchAchievements();
+    } else {
+      setUnlockedAchievements(new Set());
+    }
+  }, [user, fetchAchievements]);
+
+  const trackAction = useCallback(
+    async (action: string, data?: Record<string, unknown>) => {
+      if (!user) return;
+      try {
+        const res = await fetch("/api/achievements", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action, data }),
+        });
+        const result = await res.json();
+        if (res.ok && result.newlyUnlocked?.length > 0) {
+          // Add to unlocked set
+          setUnlockedAchievements((prev) => {
+            const next = new Set(prev);
+            result.newlyUnlocked.forEach((a: Achievement) => next.add(a.id));
+            return next;
+          });
+          // Queue toasts
+          setToastQueue((prev) => [...prev, ...result.newlyUnlocked]);
+        }
+      } catch (err) {
+        console.error("Error tracking achievement:", err);
+      }
+    },
+    [user]
+  );
+
+  // Track account creation once when user logs in
+  useEffect(() => {
+    if (user) trackAction("account_created");
+  }, [user, trackAction]);
+
+  const handleShowAchievements = useCallback(() => {
+    setShowAchievements(true);
+    setShowSavedTrips(false);
+    setShowLeaderboard(false);
+    setResult(null);
+    setItinerary(null);
+    setShowItinerary(false);
+  }, []);
+
+  const handleShowLeaderboard = useCallback(() => {
+    setShowLeaderboard(true);
+    setShowAchievements(false);
+    setShowSavedTrips(false);
+    setResult(null);
+    setItinerary(null);
+    setShowItinerary(false);
+  }, []);
+
+  const handleItineraryChange = useCallback((updated: FullItinerary) => {
+    setItinerary(updated);
+  }, []);
+
+  const handleUpdateSavedTrip = useCallback(() => {
+    fetchSavedTrips();
+  }, [fetchSavedTrips]);
 
   return (
     <div className="relative flex min-h-[100dvh] flex-col items-center justify-center overflow-hidden bg-slate-950 px-4 py-8">
+      {/* User Menu */}
+      <div className="fixed top-4 right-4 z-50">
+        <UserMenu
+          onShowSavedTrips={handleShowSavedTrips}
+          savedTripsCount={savedTrips.length}
+          onShowAchievements={handleShowAchievements}
+          achievementsCount={unlockedAchievements.size}
+          totalAchievements={ACHIEVEMENTS.length}
+          onShowLeaderboard={handleShowLeaderboard}
+        />
+      </div>
       {/* Animated background */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div
@@ -295,9 +617,32 @@ export default function Home() {
         <div className="absolute bottom-0 right-1/4 h-96 w-96 rounded-full bg-blue-500/5 blur-3xl" />
       </div>
 
+      {/* Achievement Toast */}
+      {toastQueue.length > 0 && (
+        <AchievementToast
+          achievement={toastQueue[0]}
+          onDone={() => setToastQueue((prev) => prev.slice(1))}
+        />
+      )}
+
       {/* Content */}
       <div className="relative z-10 flex w-full max-w-lg flex-col items-center gap-8">
-        {!result ? (
+        {showLeaderboard ? (
+          <LeaderboardView onBack={handleReset} />
+        ) : showAchievements ? (
+          <AchievementsView
+            unlockedIds={unlockedAchievements}
+            onBack={handleReset}
+          />
+        ) : showSavedTrips ? (
+          <SavedTripsList
+            trips={savedTrips}
+            isLoading={isLoadingSavedTrips}
+            onLoad={handleLoadTrip}
+            onDelete={handleDeleteTrip}
+            onBack={handleReset}
+          />
+        ) : !result ? (
           <>
             {/* Logo / Title */}
             <div className="flex flex-col items-center gap-2 text-center">
@@ -314,6 +659,28 @@ export default function Home() {
                 Basta indecisione. Scegli il tuo stile, premi il tasto e scopri
                 dove andare oggi.
               </p>
+              
+              {/* Links */}
+              <div className="flex flex-col sm:flex-row gap-2 mt-4">
+                <a
+                  href="/plan"
+                  className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-full bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 text-sm font-semibold hover:bg-indigo-500/30 transition-all hover:scale-105 active:scale-95"
+                >
+                  🗺️ Sai già dove andare? Pianifica qui
+                </a>
+                <a
+                  href="/my-trips-map"
+                  className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-sm font-semibold hover:bg-emerald-500/30 transition-all hover:scale-105 active:scale-95"
+                >
+                  🌍 Mappa dei miei viaggi
+                </a>
+                <a
+                  href="/friends"
+                  className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-full bg-purple-500/20 border border-purple-500/30 text-purple-300 text-sm font-semibold hover:bg-purple-500/30 transition-all hover:scale-105 active:scale-95"
+                >
+                  👥 I miei amici
+                </a>
+              </div>
             </div>
 
             {/* Location Status */}
@@ -326,7 +693,15 @@ export default function Home() {
             <ModeToggle mode={mode} onChange={setMode} />
 
             {/* Radius Selector */}
-            <RadiusSelector radius={radius} onChange={setRadius} />
+            <RadiusSelector
+              minRadius={minRadius}
+              maxRadius={maxRadius}
+              allowAbroad={allowAbroad}
+              onChangeMin={setMinRadius}
+              onChangeMax={setMaxRadius}
+              onChangeAbroad={setAllowAbroad}
+              showRange={mode === "biker" || (mode === "tourist" && touristPrefs.transport === "auto")}
+            />
 
             {/* Tourist Options (shown only in tourist mode) */}
             {mode === "tourist" && (
@@ -441,42 +816,64 @@ export default function Home() {
             )}
           </>
         ) : (
-          /* Result Card */
+          /* Result / Itinerary */
           <div className="w-full animate-fade-in">
             <button
-              onClick={handleReset}
+              onClick={showItinerary ? () => setShowItinerary(false) : handleReset}
               className="mb-4 flex items-center gap-2 text-sm text-white/40 hover:text-white/70 transition-colors"
             >
-              ← Torna indietro
+              ← {showItinerary ? "Torna alla destinazione" : "Torna indietro"}
             </button>
 
-            {/* AI / Fallback source banner */}
-            {aiUsed !== null && (
-              <div
-                className={`mb-4 flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium animate-fade-in ${
-                  isExtremeMode
-                    ? "bg-red-500/15 border border-red-500/30 text-red-300"
-                    : aiUsed
-                    ? "bg-indigo-500/15 border border-indigo-500/30 text-indigo-300"
-                    : "bg-amber-500/15 border border-amber-500/30 text-amber-300"
-                }`}
-              >
-                <span className="text-base">{isExtremeMode ? "🔥" : aiUsed ? "🤖" : "📦"}</span>
-                <span>
-                  {isExtremeMode
-                    ? "Modalità Estrema — Avventura folle generata dall'IA"
-                    : aiUsed
-                    ? "Destinazione scelta dall'Intelligenza Artificiale"
-                    : "IA non disponibile — destinazione dal database locale"}
-                </span>
-              </div>
-            )}
+            {showItinerary && itinerary ? (
+              /* Full Itinerary View */
+              <ItineraryView
+                itinerary={itinerary}
+                destinationName={result.destination.name}
+                destinationRegion={result.destination.region || ""}
+                destinationLat={result.destination.lat}
+                destinationLng={result.destination.lng}
+                onBack={() => setShowItinerary(false)}
+                onSave={user ? handleSaveTrip : undefined}
+                onItineraryChange={handleItineraryChange}
+                onUpdateSavedTrip={handleUpdateSavedTrip}
+                isSaving={isSavingTrip}
+                isSaved={tripSaved}
+                savedTripId={savedTripId}
+              />
+            ) : (
+              <>
+                {/* AI / Fallback source banner */}
+                {aiUsed !== null && (
+                  <div
+                    className={`mb-4 flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium animate-fade-in ${
+                      isExtremeMode
+                        ? "bg-red-500/15 border border-red-500/30 text-red-300"
+                        : aiUsed
+                        ? "bg-indigo-500/15 border border-indigo-500/30 text-indigo-300"
+                        : "bg-amber-500/15 border border-amber-500/30 text-amber-300"
+                    }`}
+                  >
+                    <span className="text-base">{isExtremeMode ? "🔥" : aiUsed ? "🤖" : "📦"}</span>
+                    <span>
+                      {isExtremeMode
+                        ? "Modalità Estrema — Avventura folle generata dall'IA"
+                        : aiUsed
+                        ? "Destinazione scelta dall'Intelligenza Artificiale"
+                        : "IA non disponibile — destinazione dal database locale"}
+                    </span>
+                  </div>
+                )}
 
-            <DestinationCard
-              result={result}
-              mode={mode}
-              onReset={handleSurprise}
-            />
+                <DestinationCard
+                  result={result}
+                  mode={mode}
+                  onReset={handleSurprise}
+                  onAccept={handleAccept}
+                  isGeneratingItinerary={isGeneratingItinerary}
+                />
+              </>
+            )}
           </div>
         )}
 

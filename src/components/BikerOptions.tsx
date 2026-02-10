@@ -1,6 +1,6 @@
 "use client";
 
-import { BikerPreferences, BikerIntent } from "@/lib/types";
+import { BikerPreferences, BikerIntent, BikerExperience, BikerRoadType } from "@/lib/types";
 
 interface BikerOptionsProps {
   preferences: BikerPreferences;
@@ -22,9 +22,33 @@ const GROUP_OPTIONS: { value: BikerPreferences["groupSize"]; emoji: string; labe
   { value: "gruppo", emoji: "👥", label: "Gruppo" },
 ];
 
+const EXPERIENCE_OPTIONS: { value: BikerExperience; emoji: string; label: string; sub: string }[] = [
+  { value: "principiante", emoji: "🟢", label: "Principiante", sub: "Strade facili e sicure" },
+  { value: "intermedio", emoji: "🟡", label: "Intermedio", sub: "Un po' di tutto" },
+  { value: "esperto", emoji: "🔴", label: "Esperto", sub: "Curve strette e passi impegnativi" },
+];
+
+const ROAD_TYPE_OPTIONS: { value: BikerRoadType; emoji: string; label: string }[] = [
+  { value: "tornanti", emoji: "🔄", label: "Tornanti" },
+  { value: "sterrato", emoji: "🪨", label: "Sterrato" },
+  { value: "costiera", emoji: "🌊", label: "Costiera" },
+  { value: "montagna", emoji: "⛰️", label: "Montagna" },
+  { value: "collina", emoji: "🏞️", label: "Collina" },
+  { value: "pianura", emoji: "🌾", label: "Pianura" },
+];
+
 export default function BikerOptions({ preferences, onChange }: BikerOptionsProps) {
   const update = (partial: Partial<BikerPreferences>) => {
     onChange({ ...preferences, ...partial });
+  };
+
+  const toggleRoadType = (road: BikerRoadType) => {
+    const current = preferences.roadTypes || [];
+    if (current.includes(road)) {
+      update({ roadTypes: current.filter((r) => r !== road) });
+    } else {
+      update({ roadTypes: [...current, road] });
+    }
   };
 
   // Default date to today if empty
@@ -60,6 +84,53 @@ export default function BikerOptions({ preferences, onChange }: BikerOptionsProp
               <span className="text-[10px] leading-tight text-white/40">
                 {intent.sub}
               </span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Experience level */}
+      <div>
+        <span className="mb-2 block text-xs font-semibold text-white/50 uppercase tracking-wider">
+          🎯 Il tuo livello
+        </span>
+        <div className="grid grid-cols-3 gap-2">
+          {EXPERIENCE_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => update({ experience: opt.value })}
+              className={`flex flex-col items-center gap-1 rounded-xl px-3 py-2.5 text-center transition-all duration-200 ${
+                preferences.experience === opt.value
+                  ? "bg-orange-500/25 border border-orange-500/50 text-white shadow-lg shadow-orange-500/10 scale-105"
+                  : "bg-white/5 border border-white/10 text-white/50 hover:bg-white/10 hover:text-white/70"
+              }`}
+            >
+              <span className="text-lg">{opt.emoji}</span>
+              <span className="text-xs font-bold">{opt.label}</span>
+              <span className="text-[10px] leading-tight text-white/40">{opt.sub}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Preferred road types */}
+      <div>
+        <span className="mb-2 block text-xs font-semibold text-white/50 uppercase tracking-wider">
+          🛤️ Tipo di strade preferite <span className="text-white/30 normal-case">(opzionale)</span>
+        </span>
+        <div className="grid grid-cols-3 gap-2">
+          {ROAD_TYPE_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => toggleRoadType(opt.value)}
+              className={`flex flex-col items-center gap-1 rounded-xl px-2 py-2.5 text-center transition-all duration-200 ${
+                (preferences.roadTypes || []).includes(opt.value)
+                  ? "bg-orange-500/25 border border-orange-500/50 text-white scale-105"
+                  : "bg-white/5 border border-white/10 text-white/50 hover:bg-white/10 hover:text-white/70"
+              }`}
+            >
+              <span className="text-lg">{opt.emoji}</span>
+              <span className="text-[11px] font-bold">{opt.label}</span>
             </button>
           ))}
         </div>
@@ -142,6 +213,24 @@ export default function BikerOptions({ preferences, onChange }: BikerOptionsProp
           </div>
           <span className="text-xs text-white/60">🚫 Evita autostrade</span>
         </label>
+      </div>
+
+      {/* Free text */}
+      <div>
+        <span className="mb-1.5 block text-xs font-semibold text-white/50 uppercase tracking-wider">
+          ✏️ Richieste particolari <span className="text-white/30 normal-case">(opzionale)</span>
+        </span>
+        <textarea
+          value={preferences.freeText || ""}
+          onChange={(e) => update({ freeText: e.target.value })}
+          placeholder="Es: vorrei un passo con vista lago, oppure una trattoria con polenta..."
+          rows={3}
+          maxLength={300}
+          className="w-full rounded-xl bg-white/10 border border-white/20 px-3 py-2.5 text-sm text-white placeholder-white/30 outline-none transition-all focus:border-orange-500/50 focus:bg-white/15 focus:ring-2 focus:ring-orange-500/20 resize-none"
+        />
+        <div className="mt-1 text-right text-[10px] text-white/30">
+          {(preferences.freeText || "").length}/300
+        </div>
       </div>
     </div>
   );
