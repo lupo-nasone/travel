@@ -198,9 +198,14 @@ VINCOLI OBBLIGATORI (l'avventura DEVE rispettare questi):
       }
 
       if (ep.freeText && ep.freeText.trim()) {
-        extremeContext += `\n\nRICHIESTA SPECIALE DELL'UTENTE (PRIORITÀ ALTA — tieni conto di questa richiesta nella generazione dell'avventura):
+        extremeContext += `\n\n═══════════════════════════════════════════════════════════════
+RICHIESTA DELL'UTENTE — PRIORITÀ MASSIMA ASSOLUTA:
 "${ep.freeText.trim()}"
-Cerca di soddisfare questa richiesta il più possibile.`;
+═══════════════════════════════════════════════════════════════
+Questa è LA RICHIESTA PRINCIPALE. L'avventura DEVE corrispondere a quello che ha chiesto.
+Analizza la richiesta parola per parola e crea un'avventura che soddisfi ESATTAMENTE ciò che l'utente vuole.
+Se chiede qualcosa di specifico (es: "dormire in un faro", "fare bungee jumping") → trova ESATTAMENTE quello.
+NON ignorare nessun dettaglio della richiesta. Questa ha priorità su TUTTO il resto.`;
       }
 
       prompt = `Sei un pazzo avventuriero italiano senza limiti. L'utente si trova a (${lat}, ${lng}) e vuole fare qualcosa di ESTREMO, ASSURDO, FOLLE ma fattibile nella realtà.
@@ -410,9 +415,22 @@ Cerca posti che combinino questi interessi. Ad esempio se l'utente ha scelto "na
 
       // Free text
       if (touristPrefs.freeText && touristPrefs.freeText.trim()) {
-        touristContext += `\n\nRICHIESTA SPECIALE DELL'UTENTE (PRIORITÀ ALTA — tieni conto di questa richiesta):
+        touristContext += `\n\n═══════════════════════════════════════════════════════════════
+RICHIESTA DELL'UTENTE — PRIORITÀ MASSIMA ASSOLUTA:
 "${touristPrefs.freeText.trim()}"
-Cerca di soddisfare questa richiesta il più possibile nella scelta della destinazione e nel piano.`;
+═══════════════════════════════════════════════════════════════
+Questa è LA RICHIESTA PRINCIPALE dell'utente. La destinazione DEVE corrispondere a quello che ha chiesto.
+Analizza la richiesta parola per parola:
+- Se menziona un TIPO di posto (mare, montagna, borgo, lago, città, ecc.) → cerca ESATTAMENTE quel tipo
+- Se menziona un'ATTIVITÀ (mangiare, trekking, relax, arte, ecc.) → la destinazione DEVE offrire quell'attività
+- Se menziona un BUDGET (economico, gratis, lusso, ecc.) → rispetta il budget indicato
+- Se menziona uno STILE (romantico, avventuroso, tranquillo, ecc.) → la destinazione deve avere quell'atmosfera
+- Se menziona una STAGIONE o PERIODO → scegli un posto adatto a quel periodo
+- Se menziona un GRUPPO (famiglia, coppia, amici) → la destinazione deve essere adatta a quel gruppo
+- Se menziona CIBO → trova un posto famoso per la cucina locale
+- Se menziona qualcosa di SPECIFICO (es: 'cascata', 'grotta', 'terme') → trova ESATTAMENTE quel tipo di posto
+NON ignorare nessun dettaglio della richiesta. Se l'utente chiede 'un posto al mare economico per la famiglia', cerca una spiaggia/località balneare economica adatta alle famiglie. Non un borgo medievale in collina.
+La richiesta dell'utente ha la priorità su TUTTI gli altri parametri.`;
       }
 
       // Abroad + short trip warning — restrict AI
@@ -480,16 +498,35 @@ ${bikerPrefs.avoidHighways ? "Vuole evitare autostrade." : ""}`;
 
       // Free text
       if (bikerPrefs.freeText && bikerPrefs.freeText.trim()) {
-        bikerContext += `\n\nRICHIESTA SPECIALE DEL MOTOCICLISTA (PRIORITÀ ALTA — tieni conto di questa richiesta):
+        bikerContext += `\n\n═══════════════════════════════════════════════════════════════
+RICHIESTA DEL MOTOCICLISTA — PRIORITÀ MASSIMA ASSOLUTA:
 "${bikerPrefs.freeText.trim()}"
-Cerca di soddisfare questa richiesta il più possibile nella scelta della destinazione e nel piano.`;
+═══════════════════════════════════════════════════════════════
+Questa è LA RICHIESTA PRINCIPALE. La destinazione DEVE corrispondere a quello che ha chiesto.
+Analizza la richiesta parola per parola:
+- Se menziona un TIPO di strada (curve, tornanti, costiera, montagna) → cerca ESATTAMENTE quel tipo
+- Se menziona un POSTO specifico (lago, mare, passo, ecc.) → la meta DEVE essere quel tipo di posto
+- Se menziona CIBO → trova un posto con un ottimo ristorante/trattoria raggiungibile in moto
+- Se menziona un'ESPERIENZA (tramonto, panorama, aperitivo) → la destinazione DEVE offrire quell'esperienza
+- Se menziona una DISTANZA o DURATA → rispettala
+NON ignorare nessun dettaglio. La richiesta ha priorità su tutto.`;
       }
     }
 
+    // Check if user has a specific free text request
+    const hasTouristRequest = touristPrefs?.freeText && touristPrefs.freeText.trim().length > 0;
+    const hasBikerRequest = bikerPrefs?.freeText && bikerPrefs.freeText.trim().length > 0;
+
     const modeInstructions =
       mode === "tourist"
-        ? `L'utente è un TURISTA. Cerca posti con valore storico, artistico o naturale: borghi nascosti, laghi poco conosciuti, abbazie, castelli dimenticati, siti archeologici minori, eremi, parchi naturali poco frequentati. EVITA le mete turistiche famose e mainstream (no Cinque Terre, no Amalfi, no Lago di Garda, no San Gimignano, ecc). Cerca le perle NASCOSTE che solo un locale conosce.${touristContext}`
-        : `L'utente è un MOTOCICLISTA. Cerca passi di montagna, strade panoramiche con curve, valichi poco frequentati, strade provinciali spettacolari, percorsi con asfalto buono e alta tortuosità. Privilegia strade statali e provinciali, non autostrade. Includi valutazione qualità asfalto (1-5) e rating curve (1-5). EVITA i passi ultra-famosi (no Stelvio, no Sella, no Gardena). Cerca i passi e le strade SEGRETE che solo i motociclisti locali conoscono.${bikerContext}`;
+        ? `L'utente è un TURISTA.${hasTouristRequest
+            ? ` L'UTENTE HA FATTO UNA RICHIESTA SPECIFICA — leggi attentamente la sezione "RICHIESTA DELL'UTENTE" qui sotto e dai la MASSIMA PRIORITÀ a quella richiesta. La destinazione DEVE corrispondere a ciò che l'utente ha chiesto. Se chiede mare → cerca mare. Se chiede montagna → cerca montagna. Se chiede cibo → cerca un posto famoso per la cucina. NON ignorare la richiesta.`
+            : ` Cerca posti con valore storico, artistico o naturale: borghi nascosti, laghi poco conosciuti, abbazie, castelli dimenticati, siti archeologici minori, eremi, parchi naturali poco frequentati.`
+          } EVITA le mete turistiche famose e mainstream (no Cinque Terre, no Amalfi, no Lago di Garda, no San Gimignano, ecc). Cerca le perle NASCOSTE che solo un locale conosce.${touristContext}`
+        : `L'utente è un MOTOCICLISTA.${hasBikerRequest
+            ? ` L'UTENTE HA FATTO UNA RICHIESTA SPECIFICA — leggi attentamente la sezione "RICHIESTA DEL MOTOCICLISTA" qui sotto e dai la MASSIMA PRIORITÀ a quella richiesta. La destinazione DEVE corrispondere a ciò che ha chiesto.`
+            : ` Cerca passi di montagna, strade panoramiche con curve, valichi poco frequentati, strade provinciali spettacolari, percorsi con asfalto buono e alta tortuosità.`
+          } Privilegia strade statali e provinciali, non autostrade. Includi valutazione qualità asfalto (1-5) e rating curve (1-5). EVITA i passi ultra-famosi (no Stelvio, no Sella, no Gardena). Cerca i passi e le strade SEGRETE che solo i motociclisti locali conoscono.${bikerContext}`;
 
     const distanceInstruction = allowAbroad
       ? `L'utente può uscire dall'Italia — suggerisci mete in tutta Europa raggiungibili.`
@@ -623,11 +660,11 @@ REGOLE PER transportInfo (OBBLIGATORIO per ${touristPrefs.transport.toUpperCase(
                 {
                   role: "system",
                   content:
-                    "Sei un assistente di viaggio italiano. Rispondi SOLO con JSON valido, senza markdown, senza commenti, senza testo prima o dopo il JSON.",
+                    "Sei un esperto viaggiatore italiano che conosce ogni angolo nascosto d'Italia e d'Europa. Il tuo compito è suggerire destinazioni PERFETTE che corrispondano ESATTAMENTE a ciò che l'utente chiede. Se l'utente descrive un tipo specifico di posto (mare, montagna, lago, borgo, ecc.), trova ESATTAMENTE quel tipo di posto. Se menziona un'attività (mangiare, trekking, relax), la destinazione DEVE offrire quell'attività. Rispondi SOLO con JSON valido, senza markdown, senza commenti, senza testo prima o dopo il JSON.",
                 },
                 { role: "user", content: prompt },
               ],
-              temperature: 1.1,
+              temperature: 1.0,
               max_tokens: 2048,
               response_format: { type: "json_object" },
             }),

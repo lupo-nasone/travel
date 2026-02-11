@@ -22,7 +22,7 @@ export default function SurpriseMeButton({
       disabled={isLoading}
       className={`
         group relative overflow-hidden rounded-full bg-gradient-to-br ${colors}
-        px-12 py-6 text-xl font-bold text-white shadow-2xl
+        px-10 py-5 text-lg font-bold text-white shadow-2xl
         transition-all duration-500 ease-out
         hover:scale-110 hover:shadow-2xl
         active:scale-95
@@ -44,7 +44,7 @@ export default function SurpriseMeButton({
         {isLoading ? (
           <>
             <svg
-              className="animate-spin h-6 w-6"
+              className="animate-spin h-5 w-5"
               viewBox="0 0 24 24"
               fill="none"
             >
@@ -62,14 +62,14 @@ export default function SurpriseMeButton({
                 d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
               />
             </svg>
-            <span>Cerco la meta perfetta...</span>
+            <span>Sto cercando...</span>
           </>
         ) : (
           <>
-            <span className="text-3xl transition-transform duration-300 group-hover:rotate-12">
+            <span className="text-2xl transition-transform duration-300 group-hover:rotate-12">
               🎲
             </span>
-            <span>Sorprendimi!</span>
+            <span>Trova un posto a caso!</span>
           </>
         )}
       </span>

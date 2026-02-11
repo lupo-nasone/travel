@@ -22,10 +22,10 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "WayPoint Roulette — La tua prossima avventura",
+  title: "WayPoint — Dimmi cosa vuoi fare, trovo io dove",
   description:
-    "Elimina la fatica della scelta: scegli il tuo stile, premi il tasto e scopri dove andare oggi.",
-  keywords: ["viaggi", "gita fuoriporta", "moto", "borghi", "Italia", "passi"],
+    "Scrivi cosa ti piacerebbe fare e l'IA trova il posto perfetto per te. Viaggi, gite, avventure in moto e tanto altro.",
+  keywords: ["viaggi", "gita fuoriporta", "moto", "borghi", "Italia", "passi", "IA", "intelligenza artificiale", "viaggio personalizzato"],
 };
 
 export default function RootLayout({
