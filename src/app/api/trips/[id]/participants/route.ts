@@ -120,15 +120,16 @@ export async function POST(
       }
     }
 
-    // Crea invito
+    // Crea invito — auto-accept per semplicità
     const { data: participant, error } = await supabase
       .from("trip_participants")
       .insert({
         trip_id: tripId,
         user_id: friend_id,
         role,
-        status: "pending",
+        status: "accepted",
         invited_by: user.id,
+        joined_at: new Date().toISOString(),
       })
       .select()
       .single();

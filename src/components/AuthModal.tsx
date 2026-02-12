@@ -12,6 +12,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [username, setUsername] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -28,7 +29,12 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
     try {
       if (isSignUp) {
-        const { error: err } = await signUpWithEmail(email, password);
+        if (!username.trim()) {
+          setError("Username obbligatorio");
+          setIsSubmitting(false);
+          return;
+        }
+        const { error: err } = await signUpWithEmail(email, password, username.trim());
         if (err) {
           setError(err);
         } else {
@@ -37,6 +43,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
           );
           setEmail("");
           setPassword("");
+          setUsername("");
         }
       } else {
         const { error: err } = await signInWithEmail(email, password);
@@ -80,6 +87,23 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="px-6 pb-6 space-y-4">
+          {isSignUp && (
+            <div>
+              <label className="section-label mb-1.5 block">
+                Username *
+              </label>
+              <input
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required={isSignUp}
+                maxLength={30}
+                placeholder="Il tuo nome utente"
+                className="w-full rounded-xl input-glass px-4 py-3 text-sm text-white placeholder-white/25"
+              />
+            </div>
+          )}
+
           <div>
             <label className="section-label mb-1.5 block">
               Email

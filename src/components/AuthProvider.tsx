@@ -16,7 +16,7 @@ interface AuthContextType {
   session: Session | null;
   isLoading: boolean;
   signInWithEmail: (email: string, password: string) => Promise<{ error: string | null }>;
-  signUpWithEmail: (email: string, password: string) => Promise<{ error: string | null }>;
+  signUpWithEmail: (email: string, password: string, username?: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
 }
 
@@ -25,7 +25,7 @@ const AuthContext = createContext<AuthContextType>({
   session: null,
   isLoading: true,
   signInWithEmail: async () => ({ error: null }),
-  signUpWithEmail: async () => ({ error: null }),
+  signUpWithEmail: async (_e?: string, _p?: string, _u?: string) => ({ error: null }),
   signOut: async () => {},
 });
 
@@ -74,13 +74,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const signUpWithEmail = useCallback(
-    async (email: string, password: string) => {
+    async (email: string, password: string, username?: string) => {
       const supabase = createClient();
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
+        options: username ? {
+          data: { display_name: username },
+        } : undefined,
       });
       if (error) return { error: error.message };
+
+      // Save username to user_stats if provided
+      if (username && data.user) {
+        try {
+          await fetch("/api/username", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ display_name: username }),
+          });
+        } catch {
+          // Non-critical, user can set it later
+        }
+      }
+
       return { error: null };
     },
     []

@@ -258,4 +258,6 @@ export interface SavedTrip {
     travelTime: string;
     mapsUrl: string;
   };
+  is_shared?: boolean;       // true if this trip was shared with the user
+  is_owner?: boolean;        // true if the user owns this trip
 }
