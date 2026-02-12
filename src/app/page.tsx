@@ -59,7 +59,7 @@ export default function Home() {
   const { user } = useAuth();
   const [mode, setMode] = useState<TravelMode>("tourist");
   const [minRadius, setMinRadius] = useState(50);
-  const [maxRadius, setMaxRadius] = useState(200);
+  const [maxRadius, setMaxRadius] = useState(250);
   const [allowAbroad, setAllowAbroad] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<DestinationResult | null>(null);
@@ -239,8 +239,8 @@ export default function Home() {
           body: JSON.stringify({
             lat: userPos.lat,
             lng: userPos.lng,
-            minRadius: allowAbroad || (mode === "tourist" && touristPrefs.transport !== "auto") ? 0 : minRadius,
-            maxRadius: allowAbroad || (mode === "tourist" && touristPrefs.transport !== "auto") ? 99999 : maxRadius,
+            minRadius,
+            maxRadius,
             allowAbroad,
             mode,
             excludeNames: seenNames,
@@ -293,8 +293,8 @@ export default function Home() {
         const picked = selectDestination(
           pool as Destination[],
           userPos,
-          allowAbroad ? 99999 : minRadius,
-          allowAbroad ? 99999 : maxRadius,
+          minRadius,
+          maxRadius,
           mode,
           weatherMap,
           seenStaticIds
@@ -587,7 +587,7 @@ export default function Home() {
   };
 
   return (
-    <div className="relative flex min-h-[100dvh] flex-col items-center overflow-hidden bg-slate-950 px-4 py-6">
+    <div className="relative flex min-h-[100dvh] flex-col items-center overflow-hidden animated-gradient-bg px-4 py-6">
       {/* User Menu */}
       <div className="fixed top-4 right-4 z-50">
         <UserMenu
@@ -602,10 +602,9 @@ export default function Home() {
 
       {/* Background */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -top-1/2 -left-1/2 h-[200%] w-[200%] bg-[radial-gradient(ellipse_at_center,rgba(99,102,241,0.08)_0%,transparent_60%)] transition-all duration-1000" />
-        <div className="absolute top-0 left-1/4 h-96 w-96 rounded-full bg-purple-500/5 blur-3xl" />
-        <div className="absolute bottom-0 right-1/4 h-96 w-96 rounded-full bg-blue-500/5 blur-3xl" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[600px] w-[600px] rounded-full bg-emerald-500/[0.03] blur-3xl" />
+        <div className="absolute -top-1/2 -left-1/2 h-[200%] w-[200%] bg-[radial-gradient(ellipse_at_center,rgba(16,185,129,0.06)_0%,transparent_50%)] transition-all duration-1000" />
+        <div className="absolute top-0 left-1/4 h-80 w-80 rounded-full bg-emerald-500/[0.04] blur-[100px]" />
+        <div className="absolute bottom-0 right-1/4 h-80 w-80 rounded-full bg-indigo-500/[0.04] blur-[100px]" />
       </div>
 
       {/* Achievement Toast */}
@@ -630,23 +629,26 @@ export default function Home() {
         ) : viewStep === "hero" && !result ? (
           /* ═══ STEP 1: HERO ═══ */
           <>
-            {/* Logo */}
-            <div className="flex flex-col items-center gap-1 text-center mt-8 animate-fade-in">
-              <div className="flex items-center gap-2 text-3xl font-black text-white">
-                <span className="text-4xl">📍</span>
-                <span className="bg-gradient-to-r from-emerald-400 via-teal-300 to-indigo-400 bg-clip-text text-transparent">
+            {/* Logo & Tagline */}
+            <div className="flex flex-col items-center gap-3 text-center mt-10 animate-fade-in">
+              <div className="flex items-center gap-2.5">
+                <span className="text-3xl animate-float">📍</span>
+                <span className="text-3xl font-black text-gradient tracking-tight">
                   WayPoint
                 </span>
               </div>
+              <p className="text-sm text-white/40 font-medium max-w-xs">
+                La tua prossima avventura inizia da qui
+              </p>
             </div>
 
             {/* Greeting */}
-            <p className="text-center text-lg text-white/70 font-medium animate-fade-in" style={{ animationDelay: "0.1s" }}>
+            <p className="text-center text-base text-white/60 font-medium animate-fade-in" style={{ animationDelay: "0.08s" }}>
               {getGreeting()}
             </p>
 
             {/* Main Input */}
-            <div className="w-full animate-fade-in" style={{ animationDelay: "0.2s" }}>
+            <div className="w-full animate-fade-in" style={{ animationDelay: "0.15s" }}>
               <div className="relative">
                 <textarea
                   ref={inputRef}
@@ -658,14 +660,14 @@ export default function Home() {
                       handleQuerySubmit();
                     }
                   }}
-                  placeholder={"Dimmi cosa ti piacerebbe fare... ✨\nes: \"Weekend in un borgo con buon cibo\"\nes: \"Giro in moto con belle curve\"\nes: \"Posto economico al mare per la famiglia\""}
+                  placeholder={"Dimmi cosa ti piacerebbe fare... ✨\nes: \"Weekend in un borgo con buon cibo\"\nes: \"Giro in moto con belle curve\""}
                   rows={3}
-                  className="w-full resize-none rounded-2xl border-2 border-white/10 bg-white/[0.07] px-5 py-4 text-base text-white placeholder-white/30 outline-none transition-all duration-300 focus:border-emerald-500/40 focus:bg-white/10 focus:shadow-lg focus:shadow-emerald-500/5 focus:ring-0"
+                  className="w-full resize-none rounded-2xl border border-white/[0.08] bg-white/[0.04] px-5 py-4 text-base text-white placeholder-white/25 outline-none transition-all duration-300 focus:border-emerald-500/30 focus:bg-white/[0.06] focus:shadow-lg focus:shadow-emerald-500/[0.05]"
                 />
                 {userQuery.trim() && (
                   <button
                     onClick={handleQuerySubmit}
-                    className="absolute bottom-3 right-3 rounded-xl bg-emerald-500 p-2.5 text-white shadow-lg shadow-emerald-500/30 transition-all hover:bg-emerald-400 hover:scale-105 active:scale-95"
+                    className="absolute bottom-3 right-3 rounded-xl bg-emerald-500 p-2.5 text-white shadow-lg shadow-emerald-500/25 transition-all hover:bg-emerald-400 hover:scale-105 active:scale-95"
                   >
                     <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
@@ -676,18 +678,18 @@ export default function Home() {
             </div>
 
             {/* Quick Suggestions */}
-            <div className="w-full animate-fade-in" style={{ animationDelay: "0.3s" }}>
-              <p className="text-xs text-white/30 text-center mb-3 font-medium">
-                Oppure scegli un&apos;idea veloce 👇
+            <div className="w-full animate-fade-in" style={{ animationDelay: "0.22s" }}>
+              <p className="text-[11px] text-white/25 text-center mb-3 uppercase tracking-wider font-medium">
+                Idee veloci
               </p>
-              <div className="flex flex-wrap justify-center gap-2">
+              <div className="flex flex-wrap justify-center gap-1.5">
                 {QUICK_SUGGESTIONS.map((s, i) => (
                   <button
                     key={i}
                     onClick={() => handleQuickSuggestion(s.text)}
-                    className="group flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-3.5 py-2 text-sm text-white/60 transition-all duration-200 hover:border-emerald-500/30 hover:bg-emerald-500/10 hover:text-white hover:scale-105 active:scale-95"
+                    className="group flex items-center gap-1.5 rounded-full border border-white/[0.06] bg-white/[0.03] px-3 py-1.5 text-[13px] text-white/50 transition-all duration-200 hover:border-emerald-500/25 hover:bg-emerald-500/[0.08] hover:text-white/80 active:scale-95"
                   >
-                    <span className="text-base transition-transform group-hover:scale-110">{s.emoji}</span>
+                    <span className="text-sm">{s.emoji}</span>
                     <span>{s.text}</span>
                   </button>
                 ))}
@@ -695,14 +697,14 @@ export default function Home() {
             </div>
 
             {/* Separator */}
-            <div className="w-full flex items-center gap-3 animate-fade-in" style={{ animationDelay: "0.4s" }}>
-              <div className="h-px flex-1 bg-white/10" />
-              <span className="text-xs text-white/20">oppure</span>
-              <div className="h-px flex-1 bg-white/10" />
+            <div className="w-full flex items-center gap-4 animate-fade-in" style={{ animationDelay: "0.3s" }}>
+              <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
+              <span className="text-[11px] text-white/15 uppercase tracking-wider">oppure</span>
+              <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
             </div>
 
             {/* Random button */}
-            <div className="animate-fade-in" style={{ animationDelay: "0.5s" }}>
+            <div className="animate-fade-in" style={{ animationDelay: "0.35s" }}>
               <SurpriseMeButton
                 onClick={() => { if (isExtremeMode) setIsExtremeMode(false); handleSurprise(); }}
                 isLoading={isLoading && !isExtremeMode}
@@ -711,14 +713,14 @@ export default function Home() {
             </div>
 
             {/* Quick links */}
-            <div className="flex flex-wrap justify-center gap-2 animate-fade-in" style={{ animationDelay: "0.6s" }}>
-              <a href="/plan" className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-white/[0.04] border border-white/10 text-white/50 text-xs font-medium hover:bg-indigo-500/10 hover:border-indigo-500/20 hover:text-indigo-300 transition-all">
+            <div className="flex flex-wrap justify-center gap-2 animate-fade-in" style={{ animationDelay: "0.4s" }}>
+              <a href="/plan" className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-white/[0.03] border border-white/[0.06] text-white/40 text-xs font-medium hover:bg-indigo-500/[0.08] hover:border-indigo-500/15 hover:text-indigo-300/80 transition-all">
                 🗺️ Pianifica un viaggio
               </a>
-              <a href="/my-trips-map" className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-white/[0.04] border border-white/10 text-white/50 text-xs font-medium hover:bg-emerald-500/10 hover:border-emerald-500/20 hover:text-emerald-300 transition-all">
+              <a href="/my-trips-map" className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-white/[0.03] border border-white/[0.06] text-white/40 text-xs font-medium hover:bg-emerald-500/[0.08] hover:border-emerald-500/15 hover:text-emerald-300/80 transition-all">
                 🌍 I miei viaggi
               </a>
-              <a href="/friends" className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-white/[0.04] border border-white/10 text-white/50 text-xs font-medium hover:bg-purple-500/10 hover:border-purple-500/20 hover:text-purple-300 transition-all">
+              <a href="/friends" className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-white/[0.03] border border-white/[0.06] text-white/40 text-xs font-medium hover:bg-purple-500/[0.08] hover:border-purple-500/15 hover:text-purple-300/80 transition-all">
                 👥 Amici
               </a>
             </div>
@@ -726,7 +728,7 @@ export default function Home() {
             {/* Location Status */}
             <LocationStatus status={locationStatus} errorMessage={locationError} />
             {locationStatus === "error" && (
-              <button onClick={requestLocation} className="text-xs text-white/30 underline hover:text-white/50 transition-colors">
+              <button onClick={requestLocation} className="text-[11px] text-white/25 underline hover:text-white/50 transition-colors">
                 Riprova geolocalizzazione
               </button>
             )}
@@ -736,75 +738,90 @@ export default function Home() {
           <>
             <button
               onClick={() => setViewStep("hero")}
-              className="self-start flex items-center gap-2 text-sm text-white/40 hover:text-white/70 transition-colors mt-2"
+              className="self-start flex items-center gap-1.5 text-sm text-white/30 hover:text-white/60 transition-colors mt-2"
             >
-              ← Torna indietro
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+              </svg>
+              Indietro
             </button>
 
             {userQuery && (
-              <div className="w-full rounded-2xl bg-emerald-500/10 border border-emerald-500/20 px-5 py-4 animate-fade-in">
-                <p className="text-xs text-emerald-400/60 font-medium mb-1">La tua richiesta:</p>
-                <p className="text-base text-white/90 font-medium">&ldquo;{userQuery}&rdquo;</p>
+              <div className="w-full rounded-2xl glass-subtle px-5 py-4 animate-fade-in">
+                <p className="text-[11px] text-emerald-400/50 font-medium mb-1 uppercase tracking-wider">La tua richiesta</p>
+                <p className="text-base text-white/80 font-medium">&ldquo;{userQuery}&rdquo;</p>
               </div>
             )}
 
-            <div className="text-center animate-fade-in">
-              <p className="text-base text-white/70 font-medium">
-                Perfetto! Vuoi darmi qualche dettaglio in più? 🎯
+            <div className="text-center animate-fade-in" style={{ animationDelay: "0.05s" }}>
+              <p className="text-base text-white/60 font-medium">
+                Personalizza il tuo viaggio 🎯
               </p>
-              <p className="text-xs text-white/30 mt-1">
-                Puoi personalizzare il viaggio o cercare subito
+              <p className="text-[11px] text-white/25 mt-1">
+                Scegli le opzioni o cerca subito
               </p>
             </div>
 
-            <ModeToggle mode={mode} onChange={setMode} />
+            <div className="animate-fade-in" style={{ animationDelay: "0.1s" }}>
+              <ModeToggle mode={mode} onChange={setMode} />
+            </div>
 
-            <RadiusSelector
-              minRadius={minRadius} maxRadius={maxRadius} allowAbroad={allowAbroad}
-              onChangeMin={setMinRadius} onChangeMax={setMaxRadius} onChangeAbroad={setAllowAbroad}
-              showRange={mode === "biker" || (mode === "tourist" && touristPrefs.transport === "auto")}
-            />
+            <div className="animate-fade-in" style={{ animationDelay: "0.15s" }}>
+              <RadiusSelector
+                minRadius={minRadius} maxRadius={maxRadius} allowAbroad={allowAbroad}
+                onChangeMin={setMinRadius} onChangeMax={setMaxRadius} onChangeAbroad={setAllowAbroad}
+              />
+            </div>
 
             <button
               onClick={() => setShowAdvanced(!showAdvanced)}
-              className="flex items-center gap-2 text-sm text-white/40 hover:text-white/60 transition-all"
+              className="flex items-center gap-2 text-[13px] text-white/30 hover:text-white/50 transition-all animate-fade-in"
+              style={{ animationDelay: "0.2s" }}
             >
-              <span className={`transition-transform duration-200 ${showAdvanced ? "rotate-90" : ""}`}>▶</span>
-              {showAdvanced ? "Nascondi opzioni avanzate" : "Mostra opzioni avanzate"}
+              <svg
+                className={`w-3.5 h-3.5 transition-transform duration-300 ${showAdvanced ? "rotate-180" : ""}`}
+                fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
+              {showAdvanced ? "Nascondi opzioni avanzate" : "Opzioni avanzate"}
             </button>
 
             {showAdvanced && (
-              <div className="w-full animate-fade-in">
+              <div className="w-full animate-fade-in-fast">
                 {mode === "tourist" && <TouristOptions preferences={touristPrefs} onChange={setTouristPrefs} />}
                 {mode === "biker" && <BikerOptions preferences={bikerPrefs} onChange={setBikerPrefs} />}
               </div>
             )}
 
-            <div className="flex flex-col items-center gap-3 w-full mt-2">
+            <div className="flex flex-col items-center gap-3 w-full mt-2 animate-fade-in" style={{ animationDelay: "0.25s" }}>
               <SurpriseMeButton
                 onClick={() => { if (isExtremeMode) setIsExtremeMode(false); handleSurprise(); }}
                 isLoading={isLoading && !isExtremeMode}
                 mode={mode}
               />
 
+              {/* Extreme mode — cleaner toggle */}
               <button
                 onClick={() => setShowExtremePanel((prev) => !prev)}
                 disabled={isLoading}
-                className={`group relative overflow-hidden rounded-full bg-gradient-to-br from-red-500 via-pink-600 to-purple-700 px-6 py-2.5 text-sm font-bold text-white shadow-lg shadow-red-500/20 transition-all duration-500 ease-out hover:scale-105 hover:shadow-xl hover:shadow-red-500/30 active:scale-95 disabled:opacity-70 disabled:cursor-wait disabled:hover:scale-100 ${showExtremePanel ? "ring-2 ring-red-400/60" : ""}`}
+                className={`flex items-center gap-2 text-[13px] font-medium transition-all duration-300 ${
+                  showExtremePanel
+                    ? "text-red-400/80"
+                    : "text-white/25 hover:text-red-400/60"
+                }`}
               >
-                <span className="flex items-center gap-2">
-                  <span className="text-lg transition-transform duration-300 group-hover:animate-bounce">🔥</span>
-                  {showExtremePanel ? "Chiudi Estrema" : "Modalità Estrema"}
-                </span>
+                <span className="text-sm">🔥</span>
+                {showExtremePanel ? "Chiudi Modalità Estrema" : "Modalità Estrema"}
               </button>
 
               {showExtremePanel && (
-                <div className="w-full flex flex-col items-center gap-3 animate-fade-in">
+                <div className="w-full flex flex-col items-center gap-3 animate-fade-in-fast">
                   <ExtremeOptions preferences={extremePrefs} onChange={setExtremePrefs} />
                   <button
                     onClick={() => { setIsExtremeMode(true); setExtremePending(true); }}
                     disabled={isLoading}
-                    className="group relative overflow-hidden rounded-full bg-gradient-to-br from-red-600 via-orange-500 to-yellow-500 px-10 py-3.5 text-sm font-black text-white uppercase tracking-wider shadow-lg shadow-orange-500/30 transition-all duration-500 ease-out hover:scale-110 hover:shadow-xl hover:shadow-orange-500/40 active:scale-95 disabled:opacity-70 disabled:cursor-wait disabled:hover:scale-100"
+                    className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-red-600 via-orange-500 to-yellow-500 px-8 py-3.5 text-sm font-bold text-white uppercase tracking-wider shadow-lg shadow-orange-500/20 transition-all duration-300 hover:scale-105 active:scale-95 disabled:opacity-60 disabled:cursor-wait disabled:hover:scale-100"
                   >
                     {isLoading && isExtremeMode ? (
                       <span className="flex items-center gap-2">
@@ -816,9 +833,7 @@ export default function Home() {
                       </span>
                     ) : (
                       <span className="flex items-center gap-2">
-                        <span className="text-lg animate-bounce">💥</span>
-                        LANCIA L&apos;AVVENTURA ESTREMA
-                        <span className="text-lg animate-bounce">🚀</span>
+                        💥 Lancia l&apos;avventura estrema 🚀
                       </span>
                     )}
                   </button>
@@ -827,8 +842,8 @@ export default function Home() {
             </div>
 
             {noResultMessage && (
-              <div className="animate-fade-in rounded-2xl bg-red-500/10 border border-red-500/20 px-6 py-4 text-center">
-                <p className="text-sm text-red-300">{noResultMessage}</p>
+              <div className="animate-fade-in-fast rounded-2xl bg-red-500/[0.08] border border-red-500/15 px-6 py-4 text-center">
+                <p className="text-sm text-red-300/80">{noResultMessage}</p>
               </div>
             )}
           </>
@@ -836,27 +851,40 @@ export default function Home() {
           /* ═══ STEP 3: RESULT ═══ */
           <div className="w-full animate-fade-in">
             {isLoading && !result && (
-              <div className="flex flex-col items-center gap-4 py-16">
-                <div className="relative">
-                  <div className="h-16 w-16 rounded-full border-4 border-white/10 border-t-emerald-400 animate-spin" />
-                  <span className="absolute inset-0 flex items-center justify-center text-2xl">🔍</span>
+              <div className="flex flex-col items-center gap-6 py-12 animate-fade-in">
+                {/* Skeleton card */}
+                <div className="w-full max-w-md mx-auto rounded-3xl glass-card overflow-hidden">
+                  <div className="h-52 skeleton" />
+                  <div className="p-5 space-y-4">
+                    <div className="skeleton-text w-3/4 h-5" />
+                    <div className="skeleton-text w-full h-16 rounded-2xl" />
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="skeleton h-20 rounded-xl" />
+                      <div className="skeleton h-20 rounded-xl" />
+                      <div className="skeleton h-20 rounded-xl" />
+                    </div>
+                    <div className="skeleton-text w-full h-12 rounded-2xl" />
+                    <div className="skeleton-text w-2/3 h-4" />
+                  </div>
                 </div>
                 <div className="text-center">
-                  <p className="text-lg text-white/80 font-medium">
-                    {isExtremeMode ? "Genero un'avventura folle..." : "Cerco il posto perfetto per te..."}
+                  <p className="text-sm text-white/50 font-medium">
+                    {isExtremeMode ? "Genero un'avventura folle..." : "Cerco il posto perfetto..."}
                   </p>
-                  <p className="text-sm text-white/40 mt-1">L&apos;IA sta esplorando migliaia di posti 🌍</p>
+                  <p className="text-[11px] text-white/25 mt-1">L&apos;IA sta esplorando migliaia di posti</p>
                 </div>
               </div>
             )}
 
             {noResultMessage && !isLoading && (
-              <div className="flex flex-col items-center gap-4 py-12">
-                <span className="text-5xl">😕</span>
-                <p className="text-center text-white/60">{noResultMessage}</p>
+              <div className="flex flex-col items-center gap-4 py-12 animate-fade-in">
+                <div className="w-16 h-16 rounded-2xl glass flex items-center justify-center">
+                  <span className="text-3xl">😕</span>
+                </div>
+                <p className="text-center text-sm text-white/50 max-w-xs">{noResultMessage}</p>
                 <button
                   onClick={handleBackToDetails}
-                  className="rounded-full bg-white/10 px-6 py-2.5 text-sm font-medium text-white hover:bg-white/15 transition-all"
+                  className="rounded-full glass px-6 py-2.5 text-sm font-medium text-white/60 hover:bg-white/10 hover:text-white transition-all"
                 >
                   ← Prova con altre opzioni
                 </button>
@@ -867,9 +895,12 @@ export default function Home() {
               <>
                 <button
                   onClick={showItinerary ? () => setShowItinerary(false) : handleBackToDetails}
-                  className="mb-4 flex items-center gap-2 text-sm text-white/40 hover:text-white/70 transition-colors"
+                  className="mb-4 flex items-center gap-1.5 text-sm text-white/30 hover:text-white/60 transition-colors"
                 >
-                  ← {showItinerary ? "Torna alla destinazione" : "Torna indietro"}
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                  </svg>
+                  {showItinerary ? "Torna alla destinazione" : "Indietro"}
                 </button>
 
                 {showItinerary && itinerary ? (
@@ -890,20 +921,20 @@ export default function Home() {
                 ) : (
                   <>
                     {aiUsed !== null && (
-                      <div className={`mb-4 flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium animate-fade-in ${
+                      <div className={`mb-4 flex items-center gap-2 rounded-xl px-4 py-2.5 text-[13px] font-medium animate-fade-in-fast ${
                         isExtremeMode
-                          ? "bg-red-500/15 border border-red-500/30 text-red-300"
+                          ? "glass-subtle text-red-300/70"
                           : aiUsed
-                          ? "bg-indigo-500/15 border border-indigo-500/30 text-indigo-300"
-                          : "bg-amber-500/15 border border-amber-500/30 text-amber-300"
+                          ? "glass-subtle text-indigo-300/70"
+                          : "glass-subtle text-amber-300/70"
                       }`}>
-                        <span className="text-base">{isExtremeMode ? "🔥" : aiUsed ? "✨" : "📦"}</span>
+                        <span className="text-sm">{isExtremeMode ? "🔥" : aiUsed ? "✨" : "📦"}</span>
                         <span>
                           {isExtremeMode
-                            ? "Avventura estrema generata dall'IA 🔥"
+                            ? "Avventura estrema generata dall'IA"
                             : aiUsed
-                            ? "Trovato dall'IA in base alla tua richiesta ✨"
-                            : "IA non disponibile — destinazione dal database locale"}
+                            ? "Trovato dall'IA in base alla tua richiesta"
+                            : "Destinazione dal database locale"}
                         </span>
                       </div>
                     )}
@@ -920,8 +951,9 @@ export default function Home() {
         )}
 
         {/* Footer */}
-        <footer className="mt-8 text-center text-xs text-white/15">
-          <p>WayPoint — La tua prossima avventura</p>
+        <footer className="mt-12 text-center">
+          <div className="h-px w-16 mx-auto bg-gradient-to-r from-transparent via-white/[0.06] to-transparent mb-4" />
+          <p className="text-[11px] text-white/[0.12] tracking-wider">WayPoint</p>
         </footer>
       </div>
     </div>

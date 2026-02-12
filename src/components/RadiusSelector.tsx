@@ -1,7 +1,5 @@
 "use client";
 
-import { useState, useCallback } from "react";
-
 interface RadiusSelectorProps {
   minRadius: number;
   maxRadius: number;
@@ -9,37 +7,24 @@ interface RadiusSelectorProps {
   onChangeMin: (min: number) => void;
   onChangeMax: (max: number) => void;
   onChangeAbroad: (abroad: boolean) => void;
-  /** When false, only the abroad toggle is shown (no km range UI). Default true. */
   showRange?: boolean;
 }
 
-const RANGE_PRESETS: { label: string; min: number; max: number }[] = [
-  { label: "Vicino", min: 10, max: 50 },
-  { label: "Medio", min: 50, max: 150 },
-  { label: "Lontano", min: 150, max: 400 },
-  { label: "Estremo", min: 400, max: 1000 },
+type DestinationScope = "italia" | "europa" | "ovunque";
+type TravelEffort = "vicino" | "medio" | "lontano" | "ovunque";
+
+const SCOPE_OPTIONS: { value: DestinationScope; emoji: string; label: string; sub: string }[] = [
+  { value: "italia", emoji: "\u{1F1EE}\u{1F1F9}", label: "Italia", sub: "Dentro i confini" },
+  { value: "europa", emoji: "\u{1F1EA}\u{1F1FA}", label: "Europa", sub: "Anche all'estero" },
+  { value: "ovunque", emoji: "\u{1F30D}", label: "Ovunque", sub: "Senza limiti" },
 ];
 
-// Non-linear scale: maps 0–1 to 10–1500 with fine precision at low values
-// Uses a power curve so that the first 50% of the slider covers ~10-200km
-const SLIDER_MIN = 10;
-const SLIDER_MAX = 1500;
-const POWER = 2.5; // higher = more precision at low values
-
-function sliderToKm(sliderVal: number): number {
-  // sliderVal is 0–1000 (integer range of the HTML slider)
-  const t = sliderVal / 1000; // normalize to 0–1
-  const km = SLIDER_MIN + (SLIDER_MAX - SLIDER_MIN) * Math.pow(t, POWER);
-  // Round to nice steps: 5km under 200, 10km under 500, 25km above
-  if (km < 200) return Math.round(km / 5) * 5;
-  if (km < 500) return Math.round(km / 10) * 10;
-  return Math.round(km / 25) * 25;
-}
-
-function kmToSlider(km: number): number {
-  const t = Math.pow((km - SLIDER_MIN) / (SLIDER_MAX - SLIDER_MIN), 1 / POWER);
-  return Math.round(t * 1000);
-}
+const EFFORT_OPTIONS: { value: TravelEffort; emoji: string; label: string; sub: string; min: number; max: number }[] = [
+  { value: "vicino", emoji: "\u{1F697}", label: "Dietro l'angolo", sub: "< 1h di viaggio", min: 10, max: 80 },
+  { value: "medio", emoji: "\u{1F6E3}\u{FE0F}", label: "Una bella gita", sub: "1-3h di viaggio", min: 50, max: 250 },
+  { value: "lontano", emoji: "\u{2708}\u{FE0F}", label: "Una vera avventura", sub: "3h+ di viaggio", min: 200, max: 800 },
+  { value: "ovunque", emoji: "\u{1F3B2}", label: "Sorprendimi!", sub: "Qualsiasi distanza", min: 10, max: 1500 },
+];
 
 export default function RadiusSelector({
   minRadius,
@@ -50,193 +35,109 @@ export default function RadiusSelector({
   onChangeAbroad,
   showRange = true,
 }: RadiusSelectorProps) {
-  const [minInput, setMinInput] = useState(String(minRadius));
-  const [maxInput, setMaxInput] = useState(String(maxRadius));
+  const currentScope: DestinationScope = !allowAbroad ? "italia" : maxRadius > 1500 ? "ovunque" : "europa";
 
-  const handleMinSlider = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const km = sliderToKm(Number(e.target.value));
-    const clamped = Math.min(km, maxRadius - 5);
-    setMinInput(String(clamped));
-    onChangeMin(clamped);
-  }, [maxRadius, onChangeMin]);
+  const currentEffort: TravelEffort = (() => {
+    for (const opt of EFFORT_OPTIONS) {
+      if (minRadius === opt.min && maxRadius === opt.max) return opt.value;
+    }
+    if (maxRadius <= 80) return "vicino";
+    if (maxRadius <= 250) return "medio";
+    if (maxRadius <= 800) return "lontano";
+    return "ovunque";
+  })();
 
-  const handleMaxSlider = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const km = sliderToKm(Number(e.target.value));
-    const clamped = Math.max(km, minRadius + 5);
-    setMaxInput(String(clamped));
-    onChangeMax(clamped);
-  }, [minRadius, onChangeMax]);
-
-  const handleMinInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const raw = e.target.value.replace(/\D/g, "");
-    setMinInput(raw);
-    const val = Number(raw);
-    if (val >= 10 && val < maxRadius) {
-      onChangeMin(val);
+  const handleScope = (scope: DestinationScope) => {
+    if (scope === "italia") {
+      onChangeAbroad(false);
+    } else {
+      onChangeAbroad(true);
+      if (scope === "ovunque") {
+        onChangeMin(10);
+        onChangeMax(99999);
+      }
     }
   };
 
-  const handleMaxInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const raw = e.target.value.replace(/\D/g, "");
-    setMaxInput(raw);
-    const val = Number(raw);
-    if (val > minRadius && val <= 1500) {
-      onChangeMax(val);
-    }
+  const handleEffort = (effort: TravelEffort) => {
+    const opt = EFFORT_OPTIONS.find(o => o.value === effort)!;
+    onChangeMin(opt.min);
+    onChangeMax(opt.max);
   };
-
-  const handleMinBlur = () => {
-    let val = Number(minInput);
-    if (isNaN(val) || val < 10) val = 10;
-    if (val >= maxRadius) val = maxRadius - 5;
-    setMinInput(String(val));
-    onChangeMin(val);
-  };
-
-  const handleMaxBlur = () => {
-    let val = Number(maxInput);
-    if (isNaN(val) || val <= minRadius) val = minRadius + 5;
-    if (val > 1500) val = 1500;
-    setMaxInput(String(val));
-    onChangeMax(val);
-  };
-
-  const handlePreset = (min: number, max: number) => {
-    setMinInput(String(min));
-    setMaxInput(String(max));
-    onChangeMin(min);
-    onChangeMax(max);
-  };
-
-  // Convert km values to slider percentages for the visual fill
-  const minPercent = (kmToSlider(minRadius) / 1000) * 100;
-  const maxPercent = (kmToSlider(maxRadius) / 1000) * 100;
 
   return (
-    <div className="flex w-full max-w-sm flex-col items-center gap-4">
-      {/* Abroad toggle — at the top, near the radius */}
+    <div className="flex w-full max-w-sm flex-col items-center gap-5">
+      {/* Dove vuoi andare? */}
       <div className="w-full">
-        <label className="flex cursor-pointer items-center justify-center gap-3">
-          <input
-            type="checkbox"
-            checked={allowAbroad}
-            onChange={(e) => onChangeAbroad(e.target.checked)}
-            className="peer sr-only"
-          />
-          <div className="relative h-5 w-9 shrink-0 rounded-full bg-white/15 transition-colors peer-checked:bg-emerald-500/60">
-            <div className="absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform peer-checked:translate-x-4" />
-          </div>
-          <span className="text-sm text-white/60">
-            🌍 Posso uscire dall&apos;Italia
-          </span>
-        </label>
+        <p className="text-[11px] text-white/25 text-center mb-2.5 font-medium uppercase tracking-wider">
+          Dove vuoi andare?
+        </p>
+        <div className="grid grid-cols-3 gap-2">
+          {SCOPE_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => handleScope(opt.value)}
+              className={`flex flex-col items-center gap-1 rounded-xl px-3 py-3 transition-all duration-200 ${
+                currentScope === opt.value
+                  ? "glass-card ring-1 ring-emerald-500/30 shadow-lg shadow-emerald-500/[0.06]"
+                  : "bg-white/[0.03] border border-white/[0.05] hover:bg-white/[0.06]"
+              }`}
+            >
+              <span className="text-xl">{opt.emoji}</span>
+              <span className={`text-sm font-semibold ${currentScope === opt.value ? "text-white/90" : "text-white/45"}`}>
+                {opt.label}
+              </span>
+              <span className="text-[10px] text-white/25">{opt.sub}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* Show range selector only when showRange is true AND NOT abroad */}
-      {showRange && !allowAbroad ? (
-        <>
-          <span className="text-sm font-medium text-white/60 uppercase tracking-wider">
-            Distanza — scegli il range
-          </span>
-
-          {/* Min/Max inputs */}
-          <div className="flex items-center gap-3">
-            <div className="flex flex-col items-center gap-1">
-              <span className="text-[10px] uppercase tracking-wider text-white/40">Min</span>
-              <input
-                type="text"
-                inputMode="numeric"
-                value={minInput}
-                onChange={handleMinInput}
-                onBlur={handleMinBlur}
-                className="w-20 rounded-xl bg-white/10 border border-white/20 px-3 py-2.5 text-center text-xl font-bold text-white outline-none transition-all focus:border-white/40 focus:bg-white/15 focus:ring-2 focus:ring-white/10"
-              />
-            </div>
-            <span className="text-lg font-semibold text-white/30 mt-4">—</span>
-            <div className="flex flex-col items-center gap-1">
-              <span className="text-[10px] uppercase tracking-wider text-white/40">Max</span>
-              <input
-                type="text"
-                inputMode="numeric"
-                value={maxInput}
-                onChange={handleMaxInput}
-                onBlur={handleMaxBlur}
-                className="w-20 rounded-xl bg-white/10 border border-white/20 px-3 py-2.5 text-center text-xl font-bold text-white outline-none transition-all focus:border-white/40 focus:bg-white/15 focus:ring-2 focus:ring-white/10"
-              />
-            </div>
-            <span className="text-lg font-semibold text-white/50 mt-4">km</span>
-          </div>
-
-          {/* Single track with two thumbs */}
-          <div className="relative w-full h-10 px-3">
-            {/* Background track */}
-            <div className="absolute top-1/2 left-3 right-3 h-2 -translate-y-1/2 rounded-full bg-white/10" />
-            {/* Active range fill */}
-            <div
-              className="absolute top-1/2 h-2 -translate-y-1/2 rounded-full bg-gradient-to-r from-emerald-400 to-orange-400"
-              style={{
-                left: `calc(${minPercent}% * 0.94 + 12px)`,
-                right: `calc(${(100 - maxPercent)}% * 0.94 + 12px)`,
-              }}
-            />
-            {/* Min thumb slider */}
-            <input
-              type="range"
-              min={0}
-              max={1000}
-              step={1}
-              value={kmToSlider(minRadius)}
-              onChange={handleMinSlider}
-              className="range-thumb absolute inset-0 w-full"
-            />
-            {/* Max thumb slider */}
-            <input
-              type="range"
-              min={0}
-              max={1000}
-              step={1}
-              value={kmToSlider(maxRadius)}
-              onChange={handleMaxSlider}
-              className="range-thumb absolute inset-0 w-full"
-            />
-          </div>
-
-          {/* Scale labels */}
-          <div className="flex w-full justify-between px-3 -mt-2">
-            <span className="text-[10px] text-white/25">10 km</span>
-            <span className="text-[10px] text-white/25">100</span>
-            <span className="text-[10px] text-white/25">300</span>
-            <span className="text-[10px] text-white/25">700</span>
-            <span className="text-[10px] text-white/25">1500</span>
-          </div>
-
-          {/* Quick range presets */}
-          <div className="flex gap-2">
-            {RANGE_PRESETS.map((p) => (
+      {/* Quanto vuoi viaggiare? */}
+      {showRange && currentScope !== "ovunque" && (
+        <div className="w-full animate-fade-in-fast">
+          <p className="text-[11px] text-white/25 text-center mb-2.5 font-medium uppercase tracking-wider">
+            Quanto vuoi viaggiare?
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            {EFFORT_OPTIONS.map((opt) => (
               <button
-                key={p.label}
-                onClick={() => handlePreset(p.min, p.max)}
-                className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all duration-200 ${
-                  minRadius === p.min && maxRadius === p.max
-                    ? "bg-white/20 text-white ring-1 ring-white/30"
-                    : "bg-white/5 text-white/40 hover:bg-white/10 hover:text-white/60"
+                key={opt.value}
+                onClick={() => handleEffort(opt.value)}
+                className={`flex flex-col items-center gap-1 rounded-xl px-3 py-3 transition-all duration-200 ${
+                  currentEffort === opt.value
+                    ? "glass-card ring-1 ring-indigo-500/30 shadow-lg shadow-indigo-500/[0.06]"
+                    : "bg-white/[0.03] border border-white/[0.05] hover:bg-white/[0.06]"
                 }`}
               >
-                {p.label}
-                <span className="block text-[10px] text-white/30 font-normal">
-                  {p.min}-{p.max}km
+                <span className="text-lg">{opt.emoji}</span>
+                <span className={`text-sm font-semibold ${currentEffort === opt.value ? "text-white/90" : "text-white/45"}`}>
+                  {opt.label}
                 </span>
+                <span className="text-[10px] text-white/25">{opt.sub}</span>
               </button>
             ))}
           </div>
-        </>
-      ) : showRange && allowAbroad ? (
-        <div className="animate-fade-in rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-center">
-          <p className="text-sm text-emerald-300">
-            🌍 Modalità internazionale — l&apos;IA cercherà mete in tutta Europa senza limiti di distanza
+        </div>
+      )}
+
+      {/* Info box per scope ovunque */}
+      {currentScope === "ovunque" && (
+        <div className="animate-fade-in-fast rounded-xl glass-subtle px-4 py-3 text-center w-full">
+          <p className="text-[13px] text-emerald-300/60">
+            Nessun limite &mdash; l&apos;IA cercher&agrave; la meta perfetta ovunque nel mondo
           </p>
         </div>
-      ) : null}
+      )}
+
+      {/* Info box per europa */}
+      {currentScope === "europa" && (
+        <div className="animate-fade-in-fast rounded-xl glass-subtle px-4 py-3 text-center w-full">
+          <p className="text-[13px] text-blue-300/60">
+            L&apos;IA cercher&agrave; mete anche fuori dall&apos;Italia, in tutta Europa
+          </p>
+        </div>
+      )}
     </div>
   );
 }

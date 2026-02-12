@@ -528,9 +528,27 @@ NON ignorare nessun dettaglio. La richiesta ha priorità su tutto.`;
             : ` Cerca passi di montagna, strade panoramiche con curve, valichi poco frequentati, strade provinciali spettacolari, percorsi con asfalto buono e alta tortuosità.`
           } Privilegia strade statali e provinciali, non autostrade. Includi valutazione qualità asfalto (1-5) e rating curve (1-5). EVITA i passi ultra-famosi (no Stelvio, no Sella, no Gardena). Cerca i passi e le strade SEGRETE che solo i motociclisti locali conoscono.${bikerContext}`;
 
-    const distanceInstruction = allowAbroad
-      ? `L'utente può uscire dall'Italia — suggerisci mete in tutta Europa raggiungibili.`
-      : `La destinazione DEVE trovarsi a una distanza compresa tra ${minRadius} km e ${maxRadius} km dalla posizione dell'utente. NON suggerire posti più vicini di ${minRadius} km e NON più lontani di ${maxRadius} km. Rispetta RIGOROSAMENTE questo range di distanza.`;
+    const distanceInstruction = (() => {
+      if (allowAbroad && maxRadius > 1500) {
+        // "Ovunque" mode
+        return `L'utente non ha limiti geografici — suggerisci mete OVUNQUE nel mondo, la destinazione perfetta per la sua richiesta.`;
+      }
+      if (allowAbroad) {
+        // "Europa" mode
+        return `L'utente può uscire dall'Italia — suggerisci mete in tutta Europa raggiungibili. Preferisci mete raggiungibili entro ${maxRadius <= 250 ? "poche ore" : maxRadius <= 800 ? "mezza giornata" : "una giornata"} di viaggio dalla posizione dell'utente.`;
+      }
+      // "Italia" mode with effort levels
+      if (maxRadius <= 80) {
+        return `La destinazione DEVE essere VICINA all'utente, raggiungibile in MENO DI 1 ORA di viaggio (circa ${minRadius}-${maxRadius} km). Cerca posti nelle vicinanze della sua posizione, nella stessa regione o in quelle confinanti. DEVE restare in Italia.`;
+      }
+      if (maxRadius <= 250) {
+        return `La destinazione deve essere a una distanza MEDIA dall'utente, raggiungibile in 1-3 ORE di viaggio (circa ${minRadius}-${maxRadius} km). Cerca posti nella stessa macro-area (Nord, Centro, Sud Italia). DEVE restare in Italia.`;
+      }
+      if (maxRadius <= 800) {
+        return `La destinazione può essere LONTANA dall'utente, raggiungibile in 3+ ORE di viaggio (circa ${minRadius}-${maxRadius} km). Può essere in qualsiasi parte d'Italia, anche dall'altra parte del paese. DEVE restare in Italia.`;
+      }
+      return `La destinazione può essere OVUNQUE in Italia, senza limiti di distanza. Cerca la meta perfetta per la richiesta dell'utente in tutto il territorio italiano.`;
+    })();
 
     prompt = `Sei un esperto viaggiatore italiano che conosce ogni angolo nascosto d'Italia. L'utente si trova a coordinate (${lat}, ${lng}).
 
