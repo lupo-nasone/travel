@@ -1,7 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { ACHIEVEMENTS } from "@/data/achievements";
 import { RARITY_XP, getLevel } from "@/data/levels";
+
+function getServiceSupabase() {
+  return createServiceClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+}
 
 // GET — classifica globale
 export async function GET() {
@@ -15,8 +23,11 @@ export async function GET() {
     return NextResponse.json({ error: "Non autenticato" }, { status: 401 });
   }
 
+  // Use service role to bypass RLS and read ALL users' data
+  const serviceDb = getServiceSupabase();
+
   // Get all user_stats
-  const { data: allStats, error: statsError } = await supabase
+  const { data: allStats, error: statsError } = await serviceDb
     .from("user_stats")
     .select("user_id, display_name, total_spins, total_saves");
 
@@ -25,7 +36,7 @@ export async function GET() {
   }
 
   // Get all achievements for all users
-  const { data: allAchievements, error: achError } = await supabase
+  const { data: allAchievements, error: achError } = await serviceDb
     .from("user_achievements")
     .select("user_id, achievement_id");
 

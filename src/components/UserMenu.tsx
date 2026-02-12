@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "./AuthProvider";
 import AuthModal from "./AuthModal";
 
@@ -24,6 +24,49 @@ export default function UserMenu({
   const { user, isLoading, signOut } = useAuth();
   const [showAuth, setShowAuth] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [displayName, setDisplayName] = useState("");
+  const [editingName, setEditingName] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [isSavingName, setIsSavingName] = useState(false);
+
+  // Fetch display_name when user is logged in
+  const fetchDisplayName = useCallback(async () => {
+    if (!user) return;
+    try {
+      const res = await fetch("/api/username");
+      const data = await res.json();
+      if (res.ok) {
+        setDisplayName(data.display_name || "");
+      }
+    } catch {
+      // ignore
+    }
+  }, [user]);
+
+  useEffect(() => {
+    fetchDisplayName();
+  }, [fetchDisplayName]);
+
+  const handleSaveName = async () => {
+    const trimmed = newName.trim();
+    if (!trimmed) return;
+    setIsSavingName(true);
+    try {
+      const res = await fetch("/api/username", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ display_name: trimmed }),
+      });
+      if (res.ok) {
+        setDisplayName(trimmed);
+        setEditingName(false);
+      }
+    } catch {
+      // ignore
+    } finally {
+      setIsSavingName(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -48,7 +91,8 @@ export default function UserMenu({
   }
 
   // Logged in
-  const initial = (user.email || "U")[0].toUpperCase();
+  const initial = (displayName || user.email || "U")[0].toUpperCase();
+  const shownName = displayName || user.email || "Utente";
 
   return (
     <div className="relative">
@@ -59,6 +103,9 @@ export default function UserMenu({
         <div className="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-xs font-bold text-white shadow-sm">
           {initial}
         </div>
+        <span className="max-w-[100px] truncate text-white/70 text-xs hidden sm:block">
+          {displayName || undefined}
+        </span>
         <svg className={`w-3.5 h-3.5 text-white/40 transition-transform ${showDropdown ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></svg>
       </button>
 
@@ -67,15 +114,69 @@ export default function UserMenu({
         <>
           <div
             className="fixed inset-0 z-40"
-            onClick={() => setShowDropdown(false)}
+            onClick={() => { setShowDropdown(false); setEditingName(false); }}
           />
-          <div className="absolute right-0 top-full mt-2 z-50 w-56 rounded-2xl glass-dropdown overflow-hidden animate-dropdown">
-            {/* User info */}
+          <div className="absolute right-0 top-full mt-2 z-50 w-64 rounded-2xl glass-dropdown overflow-hidden animate-dropdown">
+            {/* User info / username edit */}
             <div className="px-4 py-3 border-b border-white/[0.06]">
-              <p className="section-label">Account</p>
-              <p className="text-sm text-white/70 truncate mt-0.5">
-                {user.email}
-              </p>
+              {editingName ? (
+                <div className="space-y-2">
+                  <p className="section-label">Modifica username</p>
+                  <div className="flex gap-1.5">
+                    <input
+                      type="text"
+                      value={newName}
+                      onChange={(e) => setNewName(e.target.value)}
+                      maxLength={30}
+                      placeholder="Il tuo username..."
+                      autoFocus
+                      onKeyDown={(e) => e.key === "Enter" && handleSaveName()}
+                      className="flex-1 rounded-lg input-glass px-2.5 py-1.5 text-sm text-white placeholder-white/25"
+                    />
+                    <button
+                      onClick={handleSaveName}
+                      disabled={isSavingName || !newName.trim()}
+                      className="rounded-lg bg-indigo-500/20 border border-indigo-500/30 px-2.5 py-1.5 text-xs font-bold text-indigo-300/80 hover:bg-indigo-500/30 transition-all disabled:opacity-40"
+                    >
+                      {isSavingName ? "..." : "✓"}
+                    </button>
+                    <button
+                      onClick={() => setEditingName(false)}
+                      className="rounded-lg glass-subtle px-2.5 py-1.5 text-xs text-white/40 hover:bg-white/[0.06] transition-all"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-white truncate">
+                      {shownName}
+                    </p>
+                    {displayName && (
+                      <p className="text-[11px] text-white/35 truncate mt-0.5">
+                        {user.email}
+                      </p>
+                    )}
+                    {!displayName && (
+                      <p className="text-[10px] text-white/30 mt-0.5">
+                        Imposta un username ↗
+                      </p>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => {
+                      setNewName(displayName);
+                      setEditingName(true);
+                    }}
+                    className="shrink-0 ml-2 rounded-lg glass-subtle px-2 py-1.5 text-[10px] text-white/35 hover:text-white/60 hover:bg-white/[0.06] transition-all"
+                    title="Modifica username"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" /></svg>
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Actions */}
