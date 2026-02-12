@@ -75,9 +75,10 @@ export default function AchievementsView({
       {/* Back */}
       <button
         onClick={onBack}
-        className="mb-4 flex items-center gap-2 text-sm text-white/40 hover:text-white/70 transition-colors"
+        className="mb-4 flex items-center gap-1.5 text-sm text-white/35 hover:text-white/70 transition-colors group"
       >
-        ← Torna indietro
+        <svg className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
+        Indietro
       </button>
 
       {/* Header */}
@@ -89,7 +90,7 @@ export default function AchievementsView({
         </p>
 
         {/* Progress bar */}
-        <div className="mt-3 mx-auto max-w-xs h-2.5 rounded-full bg-white/10 overflow-hidden">
+        <div className="mt-3 mx-auto max-w-xs h-2 rounded-full bg-white/[0.06] overflow-hidden">
           <div
             className="h-full rounded-full bg-gradient-to-r from-amber-400 via-orange-500 to-red-500 transition-all duration-1000"
             style={{ width: `${percentage}%` }}
@@ -108,7 +109,7 @@ export default function AchievementsView({
               className={`rounded-xl p-2 text-center transition-all ${
                 filter === rarity
                   ? `${cfg.bgColor} ${cfg.borderColor} border scale-105`
-                  : "bg-white/5 border border-white/10 hover:bg-white/10"
+                  : "glass-subtle hover:bg-white/[0.06]"
               }`}
             >
               <p className={`text-lg font-black ${cfg.textColor}`}>
@@ -129,8 +130,8 @@ export default function AchievementsView({
           onClick={() => setFilter("all")}
           className={`text-[11px] font-medium rounded-full px-3 py-1 transition-all ${
             filter === "all"
-              ? "bg-white/20 text-white border border-white/30"
-              : "bg-white/5 text-white/50 border border-white/10 hover:bg-white/10"
+              ? "bg-white/15 text-white border border-white/25"
+              : "chip text-white/40 hover:text-white/60"
           }`}
         >
           Tutti
@@ -143,8 +144,8 @@ export default function AchievementsView({
               onClick={() => setFilter(filter === cat ? "all" : cat)}
               className={`text-[11px] font-medium rounded-full px-3 py-1 transition-all ${
                 filter === cat
-                  ? "bg-white/20 text-white border border-white/30"
-                  : "bg-white/5 text-white/50 border border-white/10 hover:bg-white/10"
+                  ? "bg-white/15 text-white border border-white/25"
+                  : "chip text-white/40 hover:text-white/60"
               }`}
             >
               {icon} {label}
@@ -242,9 +243,10 @@ export default function AchievementsView({
       <div className="mt-6 pb-4">
         <button
           onClick={onBack}
-          className="w-full flex items-center justify-center gap-2 rounded-2xl bg-white/10 border border-white/20 px-6 py-4 text-sm font-semibold text-white/70 transition-all hover:bg-white/20 hover:text-white hover:scale-[1.02] active:scale-95"
+          className="w-full flex items-center justify-center gap-2 rounded-2xl glass px-6 py-3.5 text-sm font-medium text-white/50 transition-all hover:bg-white/[0.08] hover:text-white/80 active:scale-[0.98]"
         >
-          ← Torna indietro
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
+          Torna indietro
         </button>
       </div>
 

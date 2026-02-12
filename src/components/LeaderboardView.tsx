@@ -94,9 +94,20 @@ export default function LeaderboardView({ onBack }: LeaderboardViewProps) {
   if (isLoading) {
     return (
       <div className="w-full max-w-md mx-auto animate-fade-in">
-        <div className="flex flex-col items-center gap-4 py-12">
-          <div className="w-12 h-12 rounded-full border-4 border-amber-500/30 border-t-amber-500 animate-spin" />
-          <p className="text-sm text-white/50">Carico la classifica...</p>
+        <div className="space-y-2 py-6">
+          {[1,2,3,4,5].map((i) => (
+            <div key={i} className="rounded-xl glass-subtle p-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-5 skeleton rounded" />
+                <div className="w-9 h-9 skeleton-circle" />
+                <div className="flex-1 space-y-1.5">
+                  <div className="skeleton-text w-1/2" />
+                  <div className="skeleton-text w-1/3" />
+                </div>
+                <div className="skeleton-text w-12" />
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     );
@@ -107,9 +118,10 @@ export default function LeaderboardView({ onBack }: LeaderboardViewProps) {
       {/* Back */}
       <button
         onClick={onBack}
-        className="mb-4 flex items-center gap-2 text-sm text-white/40 hover:text-white/70 transition-colors"
+        className="mb-4 flex items-center gap-1.5 text-sm text-white/35 hover:text-white/70 transition-colors group"
       >
-        ← Torna indietro
+        <svg className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
+        Indietro
       </button>
 
       {/* Header */}
@@ -123,7 +135,7 @@ export default function LeaderboardView({ onBack }: LeaderboardViewProps) {
 
       {/* My position card */}
       {myEntry && (
-        <div className="mb-5 rounded-2xl bg-gradient-to-br from-indigo-500/15 via-purple-500/10 to-pink-500/10 border border-indigo-500/30 p-4">
+        <div className="mb-5 rounded-2xl glass-card bg-gradient-to-br from-indigo-500/10 via-purple-500/[0.06] to-pink-500/[0.06] border-indigo-500/20 p-4">
           <div className="flex items-center justify-between mb-3">
             <p className="text-xs font-bold text-indigo-300 uppercase tracking-wider">
               La tua posizione
@@ -147,20 +159,20 @@ export default function LeaderboardView({ onBack }: LeaderboardViewProps) {
                 onChange={(e) => setNewName(e.target.value)}
                 maxLength={30}
                 placeholder="Il tuo nome..."
-                className="flex-1 rounded-xl bg-white/10 border border-white/20 px-3 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:border-indigo-500/50"
+                className="flex-1 rounded-xl input-glass px-3 py-2 text-sm text-white placeholder-white/25"
                 autoFocus
                 onKeyDown={(e) => e.key === "Enter" && handleSaveName()}
               />
               <button
                 onClick={handleSaveName}
                 disabled={isSavingName || !newName.trim()}
-                className="rounded-xl bg-indigo-500/30 border border-indigo-500/40 px-3 py-2 text-xs font-bold text-indigo-200 hover:bg-indigo-500/40 transition-all disabled:opacity-50"
+                className="rounded-xl bg-indigo-500/20 border border-indigo-500/30 px-3 py-2 text-xs font-bold text-indigo-300/80 hover:bg-indigo-500/30 transition-all disabled:opacity-50"
               >
                 {isSavingName ? "..." : "✓"}
               </button>
               <button
                 onClick={() => setEditingName(false)}
-                className="rounded-xl bg-white/10 border border-white/20 px-3 py-2 text-xs text-white/50 hover:bg-white/20 transition-all"
+                className="rounded-xl glass-subtle px-3 py-2 text-xs text-white/45 hover:bg-white/[0.06] transition-all"
               >
                 ✕
               </button>
@@ -286,9 +298,9 @@ export default function LeaderboardView({ onBack }: LeaderboardViewProps) {
         })}
 
         {leaderboard.length === 0 && (
-          <div className="rounded-2xl bg-white/5 border border-white/10 p-8 text-center">
+          <div className="rounded-2xl glass-subtle p-8 text-center">
             <span className="text-5xl block mb-3">🏜️</span>
-            <p className="text-sm text-white/50">
+            <p className="text-sm text-white/40">
               Nessun esploratore in classifica. Sii il primo!
             </p>
           </div>
@@ -296,8 +308,8 @@ export default function LeaderboardView({ onBack }: LeaderboardViewProps) {
       </div>
 
       {/* Legend */}
-      <div className="mt-6 rounded-2xl bg-white/[0.03] border border-white/10 p-4">
-        <p className="text-xs font-bold text-white/40 uppercase tracking-wider mb-3">
+      <div className="mt-6 rounded-2xl glass-subtle p-4">
+        <p className="section-label mb-3">
           Livelli
         </p>
         <div className="grid grid-cols-2 gap-1.5">
@@ -319,8 +331,8 @@ export default function LeaderboardView({ onBack }: LeaderboardViewProps) {
       </div>
 
       {/* XP per rarità */}
-      <div className="mt-3 rounded-2xl bg-white/[0.03] border border-white/10 p-4">
-        <p className="text-xs font-bold text-white/40 uppercase tracking-wider mb-3">
+      <div className="mt-3 rounded-2xl glass-subtle p-4">
+        <p className="section-label mb-3">
           XP per Achievement
         </p>
         <div className="flex flex-wrap gap-2">
@@ -333,7 +345,7 @@ export default function LeaderboardView({ onBack }: LeaderboardViewProps) {
           ].map((r) => (
             <div
               key={r.label}
-              className="flex items-center gap-1.5 rounded-full bg-white/5 border border-white/10 px-2.5 py-1"
+              className="flex items-center gap-1.5 rounded-full glass-subtle px-2.5 py-1"
             >
               <span className={`text-[10px] font-bold ${r.color}`}>
                 {r.label}
@@ -350,9 +362,10 @@ export default function LeaderboardView({ onBack }: LeaderboardViewProps) {
       <div className="mt-6 pb-4">
         <button
           onClick={onBack}
-          className="w-full flex items-center justify-center gap-2 rounded-2xl bg-white/10 border border-white/20 px-6 py-4 text-sm font-semibold text-white/70 transition-all hover:bg-white/20 hover:text-white hover:scale-[1.02] active:scale-95"
+          className="w-full flex items-center justify-center gap-2 rounded-2xl glass px-6 py-3.5 text-sm font-medium text-white/50 transition-all hover:bg-white/[0.08] hover:text-white/80 active:scale-[0.98]"
         >
-          ← Torna indietro
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
+          Torna indietro
         </button>
       </div>
     </div>

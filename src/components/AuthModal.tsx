@@ -57,28 +57,31 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/70 backdrop-blur-md"
         onClick={onClose}
       />
 
       {/* Modal */}
-      <div className="relative w-full max-w-sm rounded-3xl bg-slate-900/95 border border-white/15 backdrop-blur-xl shadow-2xl overflow-hidden animate-card-appear">
+      <div className="relative w-full max-w-sm rounded-3xl glass-dropdown overflow-hidden animate-card-appear">
         {/* Header */}
-        <div className="bg-gradient-to-r from-indigo-500/20 to-purple-500/20 border-b border-white/10 px-6 py-5 text-center">
-          <h2 className="text-xl font-bold text-white">
-            {isSignUp ? "Crea il tuo account" : "Accedi"}
-          </h2>
-          <p className="text-sm text-white/50 mt-1">
-            {isSignUp
-              ? "Registrati per salvare i tuoi viaggi"
-              : "Accedi per ritrovare i tuoi viaggi salvati"}
-          </p>
+        <div className="relative px-6 py-6 text-center overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-b from-indigo-500/10 to-transparent" />
+          <div className="relative">
+            <h2 className="text-xl font-bold text-white">
+              {isSignUp ? "Crea il tuo account" : "Accedi"}
+            </h2>
+            <p className="text-sm text-white/40 mt-1">
+              {isSignUp
+                ? "Registrati per salvare i tuoi viaggi"
+                : "Accedi per ritrovare i tuoi viaggi salvati"}
+            </p>
+          </div>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="px-6 pb-6 space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-white/50 uppercase tracking-wider mb-1.5">
+            <label className="section-label mb-1.5 block">
               Email
             </label>
             <input
@@ -87,12 +90,12 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
               onChange={(e) => setEmail(e.target.value)}
               required
               placeholder="la-tua@email.it"
-              className="w-full rounded-xl bg-white/10 border border-white/20 px-4 py-3 text-sm text-white placeholder-white/30 outline-none transition-all focus:border-indigo-500/50 focus:bg-white/15 focus:ring-2 focus:ring-indigo-500/20"
+              className="w-full rounded-xl input-glass px-4 py-3 text-sm text-white placeholder-white/25"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-white/50 uppercase tracking-wider mb-1.5">
+            <label className="section-label mb-1.5 block">
               Password
             </label>
             <input
@@ -102,21 +105,21 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
               required
               minLength={6}
               placeholder="Minimo 6 caratteri"
-              className="w-full rounded-xl bg-white/10 border border-white/20 px-4 py-3 text-sm text-white placeholder-white/30 outline-none transition-all focus:border-indigo-500/50 focus:bg-white/15 focus:ring-2 focus:ring-indigo-500/20"
+              className="w-full rounded-xl input-glass px-4 py-3 text-sm text-white placeholder-white/25"
             />
           </div>
 
           {/* Error */}
           {error && (
-            <div className="rounded-xl bg-red-500/15 border border-red-500/30 px-4 py-2.5 text-sm text-red-300">
-              ❌ {error}
+            <div className="rounded-xl bg-red-500/10 border border-red-500/20 px-4 py-2.5 text-sm text-red-300/80">
+              {error}
             </div>
           )}
 
           {/* Success */}
           {success && (
-            <div className="rounded-xl bg-emerald-500/15 border border-emerald-500/30 px-4 py-2.5 text-sm text-emerald-300">
-              ✅ {success}
+            <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/20 px-4 py-2.5 text-sm text-emerald-300/80">
+              {success}
             </div>
           )}
 
@@ -124,7 +127,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 px-6 py-3.5 text-sm font-bold text-white transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-60 disabled:cursor-wait disabled:hover:scale-100 shadow-lg shadow-indigo-500/25"
+            className="w-full rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 px-6 py-3.5 text-sm font-bold text-white transition-all hover:shadow-lg hover:shadow-indigo-500/20 hover:brightness-110 active:scale-[0.98] disabled:opacity-50 disabled:cursor-wait disabled:hover:shadow-none disabled:hover:brightness-100"
           >
             {isSubmitting ? (
               <span className="flex items-center justify-center gap-2">
@@ -177,9 +180,9 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         {/* Close button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-white/30 hover:text-white/70 transition-colors text-xl leading-none"
+          className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-white/[0.06] text-white/30 hover:bg-white/10 hover:text-white/70 transition-all"
         >
-          ✕
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
         </button>
       </div>
     </div>

@@ -66,8 +66,8 @@ export default function ExtremeOptions({ preferences, onChange }: ExtremeOptions
   const today = new Date().toISOString().split("T")[0];
 
   return (
-    <div className="w-full animate-fade-in rounded-2xl border border-red-500/30 bg-red-500/5 p-5 backdrop-blur-sm">
-      <h3 className="mb-4 text-center text-sm font-bold text-red-300 flex items-center justify-center gap-2">
+    <div className="w-full animate-fade-in rounded-2xl glass border-red-500/20 p-5">
+      <h3 className="mb-4 text-center text-sm font-bold text-red-300/80 flex items-center justify-center gap-2">
         <span className="text-lg">🔥</span>
         Opzioni Modalità Estrema
         <span className="text-lg">🔥</span>
@@ -75,9 +75,9 @@ export default function ExtremeOptions({ preferences, onChange }: ExtremeOptions
 
       {/* ═══ TRASPORTO (OBBLIGATORIO) ═══ */}
       <div className="mb-5">
-        <label className="mb-2 flex items-center gap-2 text-xs font-semibold text-white/70">
+        <label className="mb-2 flex items-center gap-2 text-xs font-semibold text-white/60">
           Come ci arrivi?
-          <span className="rounded-full bg-red-500/30 px-2 py-0.5 text-[10px] font-bold text-red-300">
+          <span className="rounded-full bg-red-500/20 px-2 py-0.5 text-[10px] font-bold text-red-300/80">
             OBBLIGATORIO
           </span>
         </label>
@@ -88,8 +88,8 @@ export default function ExtremeOptions({ preferences, onChange }: ExtremeOptions
               onClick={() => update({ transport: opt.value })}
               className={`flex flex-col items-center gap-1 rounded-xl px-2 py-2.5 text-xs font-medium transition-all duration-200 ${
                 preferences.transport === opt.value
-                  ? "bg-red-500/30 text-white ring-1 ring-red-400/50 scale-105"
-                  : "bg-white/5 text-white/50 hover:bg-white/10 hover:text-white/80"
+                  ? "bg-red-500/20 text-white border border-red-400/30 scale-105"
+                  : "glass-subtle text-white/45 hover:bg-white/[0.06] hover:text-white/70"
               }`}
             >
               <span className="text-lg">{opt.emoji}</span>
@@ -101,9 +101,9 @@ export default function ExtremeOptions({ preferences, onChange }: ExtremeOptions
 
       {/* ═══ BUDGET (OBBLIGATORIO) ═══ */}
       <div className="mb-5">
-        <label className="mb-2 flex items-center gap-2 text-xs font-semibold text-white/70">
+        <label className="mb-2 flex items-center gap-2 text-xs font-semibold text-white/60">
           Budget massimo
-          <span className="rounded-full bg-red-500/30 px-2 py-0.5 text-[10px] font-bold text-red-300">
+          <span className="rounded-full bg-red-500/20 px-2 py-0.5 text-[10px] font-bold text-red-300/80">
             OBBLIGATORIO
           </span>
         </label>
@@ -114,8 +114,8 @@ export default function ExtremeOptions({ preferences, onChange }: ExtremeOptions
               onClick={() => update({ budget: opt.value })}
               className={`flex flex-col items-center gap-1 rounded-xl px-2 py-2 text-xs font-medium transition-all duration-200 ${
                 preferences.budget === opt.value
-                  ? "bg-red-500/30 text-white ring-1 ring-red-400/50 scale-105"
-                  : "bg-white/5 text-white/50 hover:bg-white/10 hover:text-white/80"
+                  ? "bg-red-500/20 text-white border border-red-400/30 scale-105"
+                  : "glass-subtle text-white/45 hover:bg-white/[0.06] hover:text-white/70"
               }`}
             >
               <span className="text-base">{opt.emoji}</span>
@@ -127,18 +127,18 @@ export default function ExtremeOptions({ preferences, onChange }: ExtremeOptions
 
       {/* ═══ SEPARATORE OPZIONALI ═══ */}
       <div className="my-4 flex items-center gap-3">
-        <div className="h-px flex-1 bg-white/10" />
-        <span className="text-[10px] font-medium text-white/30 uppercase tracking-wider">
-          Opzionali — lascia vuoto per roba generica
+        <div className="h-px flex-1 bg-white/[0.06]" />
+        <span className="section-label">
+          Opzionali
         </span>
-        <div className="h-px flex-1 bg-white/10" />
+        <div className="h-px flex-1 bg-white/[0.06]" />
       </div>
 
       {/* ═══ DOVE DORMI (OPZIONALE) ═══ */}
       <div className="mb-4">
-        <label className="mb-2 block text-xs font-semibold text-white/50">
+        <label className="mb-2 block text-xs font-semibold text-white/45">
           Dove dormi? 
-          <span className="ml-1 text-white/30">(opzionale)</span>
+          <span className="ml-1 text-white/25">(opzionale)</span>
         </label>
         <div className="grid grid-cols-4 gap-2">
           {accommodationOptions.map((opt) => (
@@ -152,8 +152,8 @@ export default function ExtremeOptions({ preferences, onChange }: ExtremeOptions
               }
               className={`flex flex-col items-center gap-1 rounded-xl px-2 py-2 text-xs font-medium transition-all duration-200 ${
                 preferences.accommodation === opt.value
-                  ? "bg-orange-500/30 text-white ring-1 ring-orange-400/50 scale-105"
-                  : "bg-white/5 text-white/40 hover:bg-white/10 hover:text-white/70"
+                  ? "bg-orange-500/20 text-white border border-orange-400/30 scale-105"
+                  : "glass-subtle text-white/35 hover:bg-white/[0.06] hover:text-white/60"
               }`}
             >
               <span className="text-base">{opt.emoji}</span>
@@ -165,9 +165,9 @@ export default function ExtremeOptions({ preferences, onChange }: ExtremeOptions
 
       {/* ═══ LIVELLO DI RISCHIO (OPZIONALE) ═══ */}
       <div className="mb-4">
-        <label className="mb-2 block text-xs font-semibold text-white/50">
+        <label className="mb-2 block text-xs font-semibold text-white/45">
           Quanto sei pazzo?
-          <span className="ml-1 text-white/30">(opzionale)</span>
+          <span className="ml-1 text-white/25">(opzionale)</span>
         </label>
         <div className="grid grid-cols-2 gap-2">
           {riskOptions.map((opt) => (
@@ -181,8 +181,8 @@ export default function ExtremeOptions({ preferences, onChange }: ExtremeOptions
               }
               className={`flex items-center gap-2 rounded-xl px-3 py-2.5 text-xs font-medium transition-all duration-200 ${
                 preferences.riskLevel === opt.value
-                  ? "bg-orange-500/30 text-white ring-1 ring-orange-400/50 scale-105"
-                  : "bg-white/5 text-white/40 hover:bg-white/10 hover:text-white/70"
+                  ? "bg-orange-500/20 text-white border border-orange-400/30 scale-105"
+                  : "glass-subtle text-white/35 hover:bg-white/[0.06] hover:text-white/60"
               }`}
             >
               <span className="text-lg">{opt.emoji}</span>
@@ -199,22 +199,22 @@ export default function ExtremeOptions({ preferences, onChange }: ExtremeOptions
       <div className="mb-4 grid grid-cols-2 gap-3">
         {/* Durata */}
         <div>
-          <label className="mb-1.5 block text-xs font-semibold text-white/50">
-            Durata <span className="text-white/30">(opz.)</span>
+          <label className="mb-1.5 block text-xs font-semibold text-white/45">
+            Durata <span className="text-white/25">(opz.)</span>
           </label>
           <div className="flex items-center gap-2">
             <button
               onClick={() => update({ duration: Math.max(1, (preferences.duration || 1) - 1) })}
-              className="rounded-lg bg-white/10 px-2.5 py-1.5 text-sm text-white/60 hover:bg-white/20 transition-colors"
+              className="rounded-lg glass-subtle px-2.5 py-1.5 text-sm text-white/50 hover:bg-white/[0.08] transition-colors"
             >
               −
             </button>
-            <span className="min-w-[3rem] text-center text-sm font-bold text-white/80">
+            <span className="min-w-[3rem] text-center text-sm font-bold text-white/70">
               {preferences.duration ? `${preferences.duration}g` : "—"}
             </span>
             <button
               onClick={() => update({ duration: Math.min(30, (preferences.duration || 0) + 1) })}
-              className="rounded-lg bg-white/10 px-2.5 py-1.5 text-sm text-white/60 hover:bg-white/20 transition-colors"
+              className="rounded-lg glass-subtle px-2.5 py-1.5 text-sm text-white/50 hover:bg-white/[0.08] transition-colors"
             >
               +
             </button>
@@ -231,8 +231,8 @@ export default function ExtremeOptions({ preferences, onChange }: ExtremeOptions
 
         {/* Compagni */}
         <div>
-          <label className="mb-1.5 block text-xs font-semibold text-white/50">
-            Con chi? <span className="text-white/30">(opz.)</span>
+          <label className="mb-1.5 block text-xs font-semibold text-white/45">
+            Con chi? <span className="text-white/25">(opz.)</span>
           </label>
           <div className="grid grid-cols-2 gap-1.5">
             {companionOptions.map((opt) => (
@@ -246,8 +246,8 @@ export default function ExtremeOptions({ preferences, onChange }: ExtremeOptions
                 }
                 className={`flex items-center justify-center gap-1 rounded-lg px-1 py-1.5 text-[11px] font-medium transition-all duration-200 ${
                   preferences.companions === opt.value
-                    ? "bg-orange-500/30 text-white ring-1 ring-orange-400/50"
-                    : "bg-white/5 text-white/40 hover:bg-white/10"
+                    ? "bg-orange-500/20 text-white border border-orange-400/30"
+                    : "glass-subtle text-white/35 hover:bg-white/[0.06]"
                 }`}
               >
                 <span>{opt.emoji}</span>
@@ -262,15 +262,15 @@ export default function ExtremeOptions({ preferences, onChange }: ExtremeOptions
       <div className="flex items-center gap-3">
         {/* Data partenza */}
         <div className="flex-1">
-          <label className="mb-1.5 block text-xs font-semibold text-white/50">
-            Quando? <span className="text-white/30">(opz.)</span>
+          <label className="mb-1.5 block text-xs font-semibold text-white/45">
+            Quando? <span className="text-white/25">(opz.)</span>
           </label>
           <input
             type="date"
             value={preferences.targetDate || ""}
             min={today}
             onChange={(e) => update({ targetDate: e.target.value || undefined })}
-            className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/80 outline-none focus:border-red-400/50 focus:ring-1 focus:ring-red-400/30 transition-all"
+            className="w-full rounded-xl input-glass px-3 py-2 text-xs text-white/70 [color-scheme:dark]"
           />
         </div>
 
@@ -280,8 +280,8 @@ export default function ExtremeOptions({ preferences, onChange }: ExtremeOptions
             onClick={() => update({ allowAbroad: !preferences.allowAbroad })}
             className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-medium transition-all duration-200 ${
               preferences.allowAbroad
-                ? "bg-red-500/30 text-white ring-1 ring-red-400/50"
-                : "bg-white/5 text-white/40 hover:bg-white/10"
+                ? "bg-red-500/20 text-white border border-red-400/30"
+                : "glass-subtle text-white/35 hover:bg-white/[0.06]"
             }`}
           >
             <span className="text-base">{preferences.allowAbroad ? "🌍" : "🇮🇹"}</span>
@@ -292,9 +292,9 @@ export default function ExtremeOptions({ preferences, onChange }: ExtremeOptions
 
       {/* ═══ FREE TEXT (OPZIONALE) ═══ */}
       <div className="mt-4">
-        <label className="mb-1.5 block text-xs font-semibold text-white/50">
+        <label className="mb-1.5 block text-xs font-semibold text-white/45">
           ✏️ Descrivi la follia che vuoi fare
-          <span className="ml-1 text-white/30">(opzionale)</span>
+          <span className="ml-1 text-white/25">(opzionale)</span>
         </label>
         <textarea
           value={preferences.freeText || ""}
@@ -302,7 +302,7 @@ export default function ExtremeOptions({ preferences, onChange }: ExtremeOptions
           placeholder="Es: vorrei dormire in un faro abbandonato, oppure raggiungere il punto più estremo d'Italia..."
           rows={3}
           maxLength={300}
-          className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white/80 placeholder-white/30 outline-none transition-all focus:border-red-400/50 focus:ring-1 focus:ring-red-400/30 resize-none"
+          className="w-full rounded-xl input-glass px-3 py-2.5 text-sm text-white/70 placeholder-white/25 resize-none"
         />
         <div className="mt-1 text-right text-[10px] text-white/30">
           {(preferences.freeText || "").length}/300

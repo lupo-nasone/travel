@@ -75,8 +75,8 @@ export default function BikerOptions({ preferences, onChange }: BikerOptionsProp
               onClick={() => update({ intent: intent.value })}
               className={`flex flex-col items-center gap-1 rounded-2xl px-3 py-3 text-center transition-all duration-200 ${
                 preferences.intent === intent.value
-                  ? "bg-orange-500/25 border border-orange-500/50 text-white shadow-lg shadow-orange-500/10 scale-105"
-                  : "bg-white/5 border border-white/10 text-white/50 hover:bg-white/10 hover:text-white/70"
+                  ? "bg-orange-500/20 border border-orange-500/40 text-white shadow-lg shadow-orange-500/[0.06] scale-105"
+                  : "glass-subtle text-white/45 hover:bg-white/[0.06] hover:text-white/65"
               }`}
             >
               <span className="text-xl">{intent.emoji}</span>
@@ -101,8 +101,8 @@ export default function BikerOptions({ preferences, onChange }: BikerOptionsProp
               onClick={() => update({ experience: opt.value })}
               className={`flex flex-col items-center gap-1 rounded-xl px-3 py-2.5 text-center transition-all duration-200 ${
                 preferences.experience === opt.value
-                  ? "bg-orange-500/25 border border-orange-500/50 text-white shadow-lg shadow-orange-500/10 scale-105"
-                  : "bg-white/5 border border-white/10 text-white/50 hover:bg-white/10 hover:text-white/70"
+                  ? "bg-orange-500/20 border border-orange-500/40 text-white shadow-lg shadow-orange-500/[0.06] scale-105"
+                  : "glass-subtle text-white/45 hover:bg-white/[0.06] hover:text-white/65"
               }`}
             >
               <span className="text-lg">{opt.emoji}</span>
@@ -125,8 +125,8 @@ export default function BikerOptions({ preferences, onChange }: BikerOptionsProp
               onClick={() => toggleRoadType(opt.value)}
               className={`flex flex-col items-center gap-1 rounded-xl px-2 py-2.5 text-center transition-all duration-200 ${
                 (preferences.roadTypes || []).includes(opt.value)
-                  ? "bg-orange-500/25 border border-orange-500/50 text-white scale-105"
-                  : "bg-white/5 border border-white/10 text-white/50 hover:bg-white/10 hover:text-white/70"
+                  ? "bg-orange-500/20 border border-orange-500/40 text-white scale-105"
+                  : "glass-subtle text-white/45 hover:bg-white/[0.06] hover:text-white/65"
               }`}
             >
               <span className="text-lg">{opt.emoji}</span>
@@ -147,7 +147,7 @@ export default function BikerOptions({ preferences, onChange }: BikerOptionsProp
             value={preferences.targetDate || today}
             min={today}
             onChange={(e) => update({ targetDate: e.target.value })}
-            className="w-full rounded-xl bg-white/10 border border-white/20 px-3 py-2.5 text-sm text-white outline-none transition-all focus:border-orange-500/50 focus:bg-white/15 focus:ring-2 focus:ring-orange-500/20 [color-scheme:dark]"
+            className="w-full rounded-xl input-glass px-3 py-2.5 text-sm text-white [color-scheme:dark]"
           />
         </div>
         <div className="flex-1">
@@ -158,7 +158,7 @@ export default function BikerOptions({ preferences, onChange }: BikerOptionsProp
             type="time"
             value={preferences.targetTime || "10:00"}
             onChange={(e) => update({ targetTime: e.target.value })}
-            className="w-full rounded-xl bg-white/10 border border-white/20 px-3 py-2.5 text-sm text-white outline-none transition-all focus:border-orange-500/50 focus:bg-white/15 focus:ring-2 focus:ring-orange-500/20 [color-scheme:dark]"
+            className="w-full rounded-xl input-glass px-3 py-2.5 text-sm text-white [color-scheme:dark]"
           />
         </div>
       </div>
@@ -175,8 +175,8 @@ export default function BikerOptions({ preferences, onChange }: BikerOptionsProp
               onClick={() => update({ groupSize: opt.value })}
               className={`flex-1 flex items-center justify-center gap-1.5 rounded-xl px-3 py-2.5 text-sm font-semibold transition-all duration-200 ${
                 preferences.groupSize === opt.value
-                  ? "bg-orange-500/25 border border-orange-500/50 text-white"
-                  : "bg-white/5 border border-white/10 text-white/50 hover:bg-white/10"
+                  ? "bg-orange-500/20 border border-orange-500/40 text-white"
+                  : "glass-subtle text-white/45 hover:bg-white/[0.06]"
               }`}
             >
               <span>{opt.emoji}</span>
@@ -195,10 +195,10 @@ export default function BikerOptions({ preferences, onChange }: BikerOptionsProp
             onChange={(e) => update({ preferScenic: e.target.checked })}
             className="peer sr-only"
           />
-          <div className="relative h-5 w-9 rounded-full bg-white/15 transition-colors peer-checked:bg-orange-500/60">
+          <div className="relative h-5 w-9 rounded-full bg-white/[0.08] transition-colors peer-checked:bg-orange-500/50">
             <div className="absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform peer-checked:translate-x-4" />
           </div>
-          <span className="text-xs text-white/60">🏞️ Preferisci strade panoramiche</span>
+          <span className="text-xs text-white/50">🏞️ Preferisci strade panoramiche</span>
         </label>
 
         <label className="flex cursor-pointer items-center gap-2">
@@ -208,10 +208,10 @@ export default function BikerOptions({ preferences, onChange }: BikerOptionsProp
             onChange={(e) => update({ avoidHighways: e.target.checked })}
             className="peer sr-only"
           />
-          <div className="relative h-5 w-9 rounded-full bg-white/15 transition-colors peer-checked:bg-orange-500/60">
+          <div className="relative h-5 w-9 rounded-full bg-white/[0.08] transition-colors peer-checked:bg-orange-500/50">
             <div className="absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform peer-checked:translate-x-4" />
           </div>
-          <span className="text-xs text-white/60">🚫 Evita autostrade</span>
+          <span className="text-xs text-white/50">🚫 Evita autostrade</span>
         </label>
       </div>
 
@@ -226,7 +226,7 @@ export default function BikerOptions({ preferences, onChange }: BikerOptionsProp
           placeholder="Es: vorrei un passo con vista lago, oppure una trattoria con polenta..."
           rows={3}
           maxLength={300}
-          className="w-full rounded-xl bg-white/10 border border-white/20 px-3 py-2.5 text-sm text-white placeholder-white/30 outline-none transition-all focus:border-orange-500/50 focus:bg-white/15 focus:ring-2 focus:ring-orange-500/20 resize-none"
+          className="w-full rounded-xl input-glass px-3 py-2.5 text-sm text-white placeholder-white/25 resize-none"
         />
         <div className="mt-1 text-right text-[10px] text-white/30">
           {(preferences.freeText || "").length}/300
